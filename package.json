@@ -1,0 +1,12 @@
+{
+  "name": "exsys-dev-ops",
+  "version": "1.0.0",
+  "description": "Contains a server that can automize icare site",
+  "author": "ahmed nassar",
+  "license": "MIT",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "puppeteer": "^24.8.2"
+  }
+}
