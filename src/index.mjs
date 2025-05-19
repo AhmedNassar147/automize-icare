@@ -13,7 +13,7 @@ import extractWaitingReferalTableData from "./extractWaitingReferalTableData.mjs
 
   // 1. Go to login page
   await page.goto("https://purchasingprogramsaudi.com/index.cfm", {
-    waitUntil: "domcontentloaded",
+    waitUntil: "networkidle2",
   });
 
   // Step 1: Wait for user to log in manually

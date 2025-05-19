@@ -6,6 +6,9 @@
   "license": "MIT",
   "type": "module",
   "private": true,
+  "scripts": {
+    "start": "node ./src/index.mjs"
+  },
   "dependencies": {
     "puppeteer": "^24.8.2"
   }
