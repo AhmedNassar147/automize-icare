@@ -6,6 +6,7 @@
 import os from "os";
 import pLimit from "p-limit";
 import downloadDocumentsFromPopupViewer from "./downloadDocumentsFromPopupViewer.mjs";
+import checkStopModalAndCloseIt from "./checkStopModalAndCloseIt.mjs";
 
 const openPatientsDetailsPageAndDownloadDocuments = async (
   browser,
@@ -45,6 +46,8 @@ const openPatientsDetailsPageAndDownloadDocuments = async (
           }),
           viewBtn.click(),
         ]);
+
+        await checkStopModalAndCloseIt(page);
 
         const downloaded = await downloadDocumentsFromPopupViewer(
           browser,

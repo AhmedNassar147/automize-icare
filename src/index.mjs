@@ -10,6 +10,10 @@ import getDateBasedTimezone from "./getDateBasedTimezone.mjs";
 import extractWaitingReferalTableData from "./extractWaitingReferalTableData.mjs";
 import openPatientsDetailsPageAndDownloadDocuments from "./openPatientsDetailsPageAndDownloadDocuments.mjs";
 
+// 1- which value from table record inserted in the pdf
+// 2- take iamge of the capture of the pdf
+// 3- take html of the modal to close
+
 (async () => {
   const currentWorkingDirectory = process.cwd();
 
