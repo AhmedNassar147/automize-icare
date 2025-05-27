@@ -19,6 +19,17 @@ const waitForWaitingCountWithInterval = async (page, intervalMs = 1000) => {
         console.log(
           `🔔 There are ${waitingCount} waiting confirmation referrals.`
         );
+
+        await page.evaluate(() => {
+          const anchor = document.querySelector(
+            'a[onclick^="populateNotificationsMOHTable(\'fnc_waiting_confirmation_referral"]'
+          );
+
+          if (anchor) {
+            anchor.click();
+          }
+        });
+
         if (intervalId) {
           clearInterval(intervalId);
         }
