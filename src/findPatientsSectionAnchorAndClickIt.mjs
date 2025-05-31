@@ -3,8 +3,6 @@
  * Helper: `findPatientsSectionAnchorAndClickIt`.
  *
  */
-import sleep from "./sleep.mjs";
-
 const findPatientsSectionAnchorAndClickIt = async (page, pupultaeFnText) => {
   await page.evaluate(
     ({ pupultaeFnText }) => {
@@ -20,7 +18,6 @@ const findPatientsSectionAnchorAndClickIt = async (page, pupultaeFnText) => {
   );
 
   await page.waitForNetworkIdle();
-  await sleep(200);
 };
 
 export default findPatientsSectionAnchorAndClickIt;

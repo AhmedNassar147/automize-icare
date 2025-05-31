@@ -22,11 +22,19 @@ const findWaitingPatientsAndGetTheirDetails = async ({
 
   await findPatientsSectionAnchorAndClickIt(page, pupultaeFnText);
 
+  await page.waitForFunction(() => {
+    const rows = document.querySelectorAll(
+      "#tblOutNotificationsTable tbody tr"
+    );
+    return rows.length >= 2;
+  });
+
   const patientsData = await extractWaitingReferalTableData(page);
 
   console.log("patientsData", JSON.stringify(patientsData, null, 2));
 
   console.time("fetchingEveryPatientDetails");
+
   const patientsWithFiles = await openPatientsDetailsPageAndDownloadDocuments({
     browser,
     page,
