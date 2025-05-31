@@ -1,6 +1,6 @@
 /*
  *
- * Helper: `goBack`.
+ * Helper: `clickAppLogo`.
  *
  */
 
@@ -10,10 +10,10 @@
 //  </a>
 // </div>
 
-const goBack = async (page) =>
+const clickAppLogo = async (page) =>
   await Promise.all([
-    // page.waitForNavigation({ waitUntil: "domcontentloaded" }), // The promise resolves after navigation has finished
+    await page.waitForNetworkIdle(),
     page.click("#icare_global_header_logo a"),
   ]);
 
-export default goBack;
+export default clickAppLogo;

@@ -6,7 +6,7 @@
 import downloadDocumentsFromPopupViewer from "./downloadDocumentsFromPopupViewer.mjs";
 import checkStopModalAndCloseIt from "./checkStopModalAndCloseIt.mjs";
 import navigateToPatientDetailsPage from "./navigateToPatientDetailsPage.mjs";
-import goBack from "./goBack.mjs";
+import clickAppLogo from "./clickAppLogo.mjs";
 import sleep from "./sleep.mjs";
 import getSelectedNationalityFromDropdwon from "./getSelectedNationalityFromDropdwon.mjs";
 
@@ -52,8 +52,8 @@ const openPatientsDetailsPageAndDownloadDocuments = async ({
       );
     }
 
-    await goBack(page);
-    await sleep(15);
+    await clickAppLogo(page);
+    await sleep(25);
     currentIndex++;
   }
 

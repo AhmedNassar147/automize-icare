@@ -3,82 +3,46 @@
  * helper: `waitForWaitingCountWithInterval`.
  *
  */
+import clickAppLogo from "./clickAppLogo.mjs";
+import sleep from "./sleep.mjs";
+import findPatientsSectionAnchorAndClickIt from "./findPatientsSectionAnchorAndClickIt.mjs";
+import { PATIENT_SECTIONS_STATUS } from "./constants.mjs";
 
-const STATUS = {
-  WAITING: {
-    countFieldSelector: "spfnc_waiting_confirmation_referral",
-    pupultaeFnText: "fnc_waiting_confirmation_referral",
-    foundCountText: "waiting confirmation referrals",
-    noCountText: "No waiting confirmation referrals found",
-  },
-  CONFIRMED: {
-    countFieldSelector: "spfnc_confirmed_referral_requests",
-    pupultaeFnText: "fnc_confirmed_referral_requests",
-    foundCountText: "confirmed referrals requests",
-    noCountText: "No confirmed referrals requests found",
-  },
-};
-
-const waitForWaitingCountWithInterval = async (
+const waitForWaitingCountWithInterval = async ({
   page,
   collectConfimrdPatient = false,
-  intervalMs = 1000
-) => {
+  patientsStore,
+  sleepMs = 0.5 * 60 * 1000,
+}) => {
   const { countFieldSelector, pupultaeFnText, foundCountText, noCountText } =
-    STATUS[collectConfimrdPatient ? "CONFIRMED" : "WAITING"];
+    PATIENT_SECTIONS_STATUS[collectConfimrdPatient ? "CONFIRMED" : "WAITING"];
 
+  await page.waitForNetworkIdle();
   await page.waitForSelector(`#${countFieldSelector}`);
 
-  return new Promise((resolve) => {
-    let intervalId;
+  const waitingCount = await page.evaluate(
+    ({ countFieldSelector }) => {
+      const span = document.getElementById(countFieldSelector);
+      return span ? parseInt(span.textContent.trim(), 10) : 0;
+    },
+    { countFieldSelector }
+  );
 
-    const check = async () => {
-      const waitingCount = await page.evaluate(
-        ({ countFieldSelector }) => {
-          const span = document.getElementById(countFieldSelector);
-          return span ? parseInt(span.textContent.trim(), 10) : 0;
-        },
-        { countFieldSelector }
-      );
+  if (waitingCount > 0) {
+    console.log(`🔔 There are ${waitingCount} ${foundCountText}.`);
 
-      if (waitingCount > 0) {
-        console.log(`🔔 There are ${waitingCount} ${foundCountText}.`);
+    await findPatientsSectionAnchorAndClickIt(page, pupultaeFnText);
 
-        await page.evaluate(
-          ({ pupultaeFnText }) => {
-            const anchor = document.querySelector(
-              // `a[onclick^="populateNotificationsMOHTable(\'${pupultaeFnText}"]`
-              `a[onclick^="populateNotificationsMOHTable('${pupultaeFnText}'"]`
-            );
-
-            if (anchor) {
-              anchor.click();
-            }
-          },
-          { pupultaeFnText }
-        );
-
-        if (intervalId) {
-          clearInterval(intervalId);
-        }
-        resolve(waitingCount);
-      } else {
-        console.log(
-          `✅ ${noCountText}, will check again in ${
-            intervalMs / 1000
-          } seconds..`
-        );
-      }
-    };
-
-    // Run the first check immediately, then start interval only after it completes
-    check().then(() => {
-      // Start interval only if not resolved yet
-      if (!intervalId) {
-        intervalId = setInterval(check, intervalMs);
-      }
-    });
-  });
+    await patientsStore.startCollectingPatients();
+    console.log(`re-searching fro next count...`);
+    await sleep(sleepMs);
+    await waitForWaitingCountWithInterval();
+  } else {
+    console.log(`${noCountText}, refreshing...`);
+    await clickAppLogo(page);
+    await sleep(sleepMs);
+    await waitForWaitingCountWithInterval();
+  }
 };
 
 export default waitForWaitingCountWithInterval;
