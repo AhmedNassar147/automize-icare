@@ -3,7 +3,6 @@
  * Helper: `sendMessageUsingWhatsapp`.
  *
  */
-// send-whatsapp.js (ESM module)
 import qrcode from "qrcode-terminal";
 import pkg from "whatsapp-web.js";
 
@@ -11,6 +10,7 @@ const { Client, LocalAuth } = pkg;
 
 // Define the recipient number (no +, no spaces)
 const number = "966569157706"; // Saudi Arabia number
+// const number = "201093184489"; // Saudi Arabia number
 const chatId = `${number}@c.us`;
 
 const sendMessageUsingWhatsapp = async (message) => {
@@ -19,7 +19,7 @@ const sendMessageUsingWhatsapp = async (message) => {
     authStrategy: new LocalAuth(),
     puppeteer: {
       headless: false, // Set to true to hide browser window
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+      // args: ["--no-sandbox", "--disable-setuid-sandbox"],
     },
   });
 
@@ -37,12 +37,15 @@ const sendMessageUsingWhatsapp = async (message) => {
       await client.sendMessage(chatId, message);
       console.log("Message sent!");
     } catch (error) {
-      console.log("Failed to send message!");
+      console.log("Failed to send message!", error);
     }
   });
 
-  // Initialize
-  client.initialize();
+  try {
+    await client.initialize();
+  } catch (error) {
+    console.log("Failed to initialize WhatsApp client!");
+  }
 };
 
 export default sendMessageUsingWhatsapp;

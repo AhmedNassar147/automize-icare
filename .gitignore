@@ -5,3 +5,5 @@
 /config.json
 /test-captcha
 /eng.traineddata
+/.wwebjs_auth
+/.wwebjs_cache
