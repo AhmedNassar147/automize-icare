@@ -22,32 +22,23 @@ const downloadDocumentsFromPopupViewer = async (browser, page) => {
         .map((a) => a.getAttribute("href").replace(/&amp;/g, "&"))
   );
 
+  await popupPage.close(); // ✅ Closes the popup
+
   const links = relativeLinks.map((rel) => new URL(rel, baseUrl).href);
 
-  const linksWithPageUrl = relativeLinks.map(
-    (rel) => new URL(rel, page.url()).href
-  );
+  // Limit concurrency to avoid hammering server
+  const concurrency = 2;
+  const results = [];
 
-  console.log("Found PDF links:", links);
-  console.log("Found PDF with page.url() links:", linksWithPageUrl);
+  for (let i = 0; i < links.length; i += concurrency) {
+    const chunk = links.slice(i, i + concurrency);
+    const chunkResults = await Promise.all(chunk.map(downloadAsBase64));
+    results.push(...chunkResults);
+  }
 
-  return links;
+  console.log("✅ All files downloaded as base64");
 
-  // // Get cookies for authenticated requests
-  // const cookies = await popupPage.cookies();
-  // const cookieHeader = cookies.map((c) => `${c.name}=${c.value}`).join("; ");
-
-  // // Limit concurrency to avoid hammering server
-  // const concurrency = 3;
-  // const results = [];
-
-  // for (let i = 0; i < links.length; i += concurrency) {
-  //   const chunk = links.slice(i, i + concurrency);
-  //   const chunkResults = await Promise.all(chunk.map(downloadAsBase64));
-  //   results.push(...chunkResults);
-  // }
-
-  // console.log("✅ All files downloaded as base64");
+  return results;
 };
 
 export default downloadDocumentsFromPopupViewer;

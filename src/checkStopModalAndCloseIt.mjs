@@ -8,10 +8,7 @@ const checkStopModalAndCloseIt = async (page) => {
 
   try {
     // Try closing the modal from the main document
-    await page.waitForSelector(closeBtnSelector, {
-      visible: true,
-      timeout: 3000,
-    });
+    await page.waitForSelector(closeBtnSelector);
     await page.click(closeBtnSelector);
     console.log("Modal closed from main page");
   } catch (mainError) {

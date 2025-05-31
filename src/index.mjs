@@ -128,8 +128,6 @@ import {
     });
     console.timeEnd("collectingPatient");
 
-    return;
-
     console.time("fetchingEveryPatientDetails");
     const patientsWithFiles = await openPatientsDetailsPageAndDownloadDocuments(
       {
@@ -141,6 +139,7 @@ import {
 
     await writePatientData({
       patientsData: patientsWithFiles,
+      extraFileName: "patientsWithFiles",
     });
     console.timeEnd("fetchingEveryPatientDetails");
 
