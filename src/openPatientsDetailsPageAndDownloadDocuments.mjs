@@ -17,6 +17,8 @@ const openPatientsDetailsPageAndDownloadDocuments = async ({
   const results = patientsData;
   const clonedPatientData = [...patientsData];
 
+  let currentIndex = 0;
+
   while (clonedPatientData.length) {
     const [{ adherentName, referralId, actionLinkRef }] =
       clonedPatientData.splice(0, 1);
@@ -28,14 +30,16 @@ const openPatientsDetailsPageAndDownloadDocuments = async ({
 
       await navigateToPatientDetailsPage(page, actionLinkRef);
 
-      await checkStopModalAndCloseIt(page);
+      // await checkStopModalAndCloseIt(page);
 
       const { text } = await getSelectedNationalityFromDropdwon(page);
 
-      results[i].nationality = text;
-
       const files = await downloadDocumentsFromPopupViewer(browser, page);
-      results[i].files = files || [];
+
+      if (results[currentIndex]) {
+        results[currentIndex].nationality = text;
+        results[currentIndex].files = files || [];
+      }
 
       console.log(
         `✅ Successfully processed patient=${adherentName} referralId=${referralId}`
@@ -49,6 +53,7 @@ const openPatientsDetailsPageAndDownloadDocuments = async ({
 
     await goBack(page);
     // await page.waitForTimeout(10);
+    currentIndex++;
   }
 
   return results;
