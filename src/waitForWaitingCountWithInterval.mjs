@@ -24,11 +24,13 @@ const waitForWaitingCountWithInterval = async (
   collectConfimrdPatient = false,
   intervalMs = 1000
 ) => {
+  const { countFieldSelector, pupultaeFnText, foundCountText, noCountText } =
+    STATUS[collectConfimrdPatient ? "CONFIRMED" : "WAITING"];
+
+  await page.waitForSelector(`#${countFieldSelector}`);
+
   return new Promise((resolve) => {
     let intervalId;
-
-    const { countFieldSelector, pupultaeFnText, foundCountText, noCountText } =
-      STATUS[collectConfimrdPatient ? "CONFIRMED" : "WAITING"];
 
     const check = async () => {
       const waitingCount = await page.evaluate(

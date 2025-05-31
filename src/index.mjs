@@ -102,10 +102,6 @@ import {
 
     console.log("✅ User Logged in successfully!");
 
-    await page.waitForNetworkIdle({
-      idleTime: 1.5 * 60 * 1000, // wait max 1.5 minutes
-    });
-
     console.time("collectingPatient");
 
     // New step: Check if the span has value > 0
