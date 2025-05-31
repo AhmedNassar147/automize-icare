@@ -19,6 +19,8 @@ const downloadAsBase64 = (fileUrl, cookieHeader) =>
       headers: {},
     };
 
+    const extension = url.searchParams.get("Ext");
+
     if (cookieHeader) {
       options.headers.Cookie = cookieHeader;
     }
@@ -26,11 +28,11 @@ const downloadAsBase64 = (fileUrl, cookieHeader) =>
     https
       .get(options, (res) => {
         if (res.statusCode !== 200) {
-          return reject(
-            new Error(
-              `Failed to download: ${fileUrl} (status ${res.statusCode})`
-            )
-          );
+          return resolve({
+            fileUrl,
+            extension,
+            message: `Failed to download: ${fileUrl} (status ${res.statusCode})`,
+          });
         }
 
         res.on("data", (chunk) => chunks.push(chunk));
@@ -40,6 +42,7 @@ const downloadAsBase64 = (fileUrl, cookieHeader) =>
 
           resolve({
             fileUrl,
+            extension,
             fileBase64: base64,
           });
         });

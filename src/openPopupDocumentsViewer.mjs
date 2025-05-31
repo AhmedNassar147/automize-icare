@@ -4,6 +4,8 @@
  *
  */
 const openPopupDocumentsViewer = async (browser, page) => {
+  console.log("🔎 Trying to find 'View documents' and click it...");
+
   // Click the "View documents" and wait for popup
   const [popupPage] = await Promise.all([
     new Promise((resolve) =>

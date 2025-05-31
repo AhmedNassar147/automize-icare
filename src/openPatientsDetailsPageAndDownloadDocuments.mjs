@@ -3,8 +3,6 @@
  * Helper: `openPatientsDetailsPageAndDownloadDocuments`.
  *
  */
-import os from "os";
-import pLimit from "p-limit";
 import downloadDocumentsFromPopupViewer from "./downloadDocumentsFromPopupViewer.mjs";
 import checkStopModalAndCloseIt from "./checkStopModalAndCloseIt.mjs";
 import navigateToPatientDetailsPage from "./navigateToPatientDetailsPage.mjs";
@@ -16,51 +14,42 @@ const openPatientsDetailsPageAndDownloadDocuments = async ({
   page,
   patientsData,
 }) => {
-  const cpuCount = os.cpus().length; // Get the number of CPU cores
-
   const results = patientsData;
+  const clonedPatientData = [...patientsData];
 
-  const limit = pLimit(Math.min(2, cpuCount));
+  while (clonedPatientData.length) {
+    const [{ adherentName, referralId, actionLinkRef }] =
+      clonedPatientData.splice(0, 1);
 
-  const tasks = patientsData.map(
-    ({ adherentName, referralId, actionLinkRef }, i) =>
-      limit(async () => {
-        const rowId = i + 1;
+    try {
+      console.log(
+        `visit details page for patient=${adherentName} referralId=${referralId} ...`
+      );
 
-        console.log(
-          `visit details page for patient=${adherentName} referralId=${referralId} row=${rowId} ...`
-        );
+      await navigateToPatientDetailsPage(page, actionLinkRef);
 
-        try {
-          await navigateToPatientDetailsPage(page, actionLinkRef);
+      await checkStopModalAndCloseIt(page);
 
-          await checkStopModalAndCloseIt(page);
+      const { text } = await getSelectedNationalityFromDropdwon(page);
 
-          const { text } = await getSelectedNationalityFromDropdwon(page);
+      results[i].nationality = text;
 
-          results[i].nationality = text;
+      const files = await downloadDocumentsFromPopupViewer(browser, page);
+      results[i].files = files || [];
 
-          const files = await downloadDocumentsFromPopupViewer(browser, page);
-          results[i].files = files || [];
+      console.log(
+        `✅ Successfully processed patient=${adherentName} referralId=${referralId}`
+      );
+    } catch (err) {
+      console.error(
+        `❌ Failed on patient=${adherentName} referralId=${referralId}:`,
+        err.message
+      );
+    }
 
-          console.log(
-            `✅ Successfully processed patient=${adherentName} referralId=${referralId} row=${rowId}`,
-            files
-          );
-        } catch (err) {
-          console.error(
-            `❌ Failed on patient=${adherentName} referralId=${referralId} row=${rowId}:`,
-            err.message
-          );
-          results[i].detailsPageError = err.message;
-        }
-
-        await goBack(page);
-        await page.waitForTimeout(25);
-      })
-  );
-
-  await Promise.all(tasks);
+    await goBack(page);
+    // await page.waitForTimeout(10);
+  }
 
   return results;
 };
