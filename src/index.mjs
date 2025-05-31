@@ -86,6 +86,7 @@ const collectConfimrdPatient = true;
       }))();
 
     patientsStore.on("startCollectingPatients", async () => {
+      console.log("startCollectingPatients starts");
       const newPage = await browser.newPage();
 
       try {

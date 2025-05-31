@@ -8,12 +8,14 @@ import sleep from "./sleep.mjs";
 import findPatientsSectionAnchorAndClickIt from "./findPatientsSectionAnchorAndClickIt.mjs";
 import { PATIENT_SECTIONS_STATUS } from "./constants.mjs";
 
-const waitForWaitingCountWithInterval = async ({
-  page,
-  collectConfimrdPatient = false,
-  patientsStore,
-  sleepMs = 0.5 * 60 * 1000,
-}) => {
+const waitForWaitingCountWithInterval = async (options) => {
+  const {
+    page,
+    collectConfimrdPatient = false,
+    patientsStore,
+    sleepMs = 0.5 * 60 * 1000,
+  } = options;
+
   const { countFieldSelector, pupultaeFnText, foundCountText, noCountText } =
     PATIENT_SECTIONS_STATUS[collectConfimrdPatient ? "CONFIRMED" : "WAITING"];
 
@@ -36,12 +38,12 @@ const waitForWaitingCountWithInterval = async ({
     await patientsStore.startCollectingPatients();
     console.log(`re-searching fro next count...`);
     await sleep(sleepMs);
-    await waitForWaitingCountWithInterval();
+    await waitForWaitingCountWithInterval(options);
   } else {
     console.log(`${noCountText}, refreshing...`);
     await clickAppLogo(page);
     await sleep(sleepMs);
-    await waitForWaitingCountWithInterval();
+    await waitForWaitingCountWithInterval(options);
   }
 };
 
