@@ -4,17 +4,27 @@
  *
  */
 const openPopupDocumentsViewer = async (browser, page) => {
-  // Wait and click "View documents"
-  await page.waitForSelector('a[onclick*="attach_view.cfm"]', {
-    timeout: 5000,
-  });
-
   // Click the "View documents" and wait for popup
   const [popupPage] = await Promise.all([
     new Promise((resolve) =>
       browser.once("targetcreated", (target) => resolve(target.page()))
     ),
-    page.click('a[onclick*="attach_view.cfm"]'),
+
+    page.evaluate(() => {
+      const link = Array.from(document.querySelectorAll("#dvTitle a")).find(
+        (a) => {
+          const content = a.textContent || "";
+
+          return (
+            content.includes("View documents") ||
+            content.includes("Link documents")
+          );
+        }
+      );
+      if (link) {
+        link.click();
+      }
+    }),
   ]);
 
   await popupPage.bringToFront();

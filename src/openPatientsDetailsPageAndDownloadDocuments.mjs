@@ -7,68 +7,55 @@ import os from "os";
 import pLimit from "p-limit";
 import downloadDocumentsFromPopupViewer from "./downloadDocumentsFromPopupViewer.mjs";
 import checkStopModalAndCloseIt from "./checkStopModalAndCloseIt.mjs";
+import navigateToPatientDetailsPage from "./navigateToPatientDetailsPage.mjs";
+import goBack from "./goBack.mjs";
+import getSelectedNationalityFromDropdwon from "./getSelectedNationalityFromDropdwon.mjs";
 
 const openPatientsDetailsPageAndDownloadDocuments = async (
   browser,
   page,
-  viewLinks
+  patientsData
 ) => {
   const cpuCount = os.cpus().length; // Get the number of CPU cores
 
-  const results = {
-    succeeded: [],
-    failed: [],
-  };
+  const results = patientsData;
 
-  const limit = pLimit(Math.min(3, cpuCount));
+  const limit = pLimit(Math.min(2, cpuCount));
 
-  const tasks = viewLinks.map((_, i) =>
+  const tasks = patientsData.map(({ adherentName, referralId }, i) =>
     limit(async () => {
-      console.log(`Processing row ${i + 1} of ${viewLinks.length}...`);
+      const rowId = i + 1;
 
-      // // Refetch the view buttons
-      // const viewLinksNow = await page.$$(
-      //   "#tblOutNotificationsTable tbody tr td a.input_btn"
-      // );
-
-      const viewBtn = viewLinks[i];
-
-      if (!viewBtn) {
-        console.warn(`⚠️ Could not find view button for row ${i + 1}`);
-        results.failed.push({ row: i + 1, reason: "Missing view button" });
-        return;
-      }
+      console.log(
+        `visit details page for patient=${adherentName} referralId=${referralId} row=${rowId} ...`
+      );
 
       try {
-        await Promise.all([
-          page.waitForSelector('a[onclick*="attach_view.cfm"]', {
-            timeout: 5000,
-          }),
-          viewBtn.click(),
-        ]);
+        await navigateToPatientDetailsPage(page, actionLinkRef);
 
         await checkStopModalAndCloseIt(page);
 
-        const downloaded = await downloadDocumentsFromPopupViewer(
-          browser,
-          page
-        );
+        const { text } = await getSelectedNationalityFromDropdwon(page);
 
-        results.succeeded.push({
-          row: i + 1,
-          downloaded,
-        });
-        console.log(`✅ Successfully processed row ${i + 1}`, downloaded);
+        results[i].nationality = text;
+
+        const files = await downloadDocumentsFromPopupViewer(browser, page);
+        results[i].files = files || [];
+
+        console.log(
+          `✅ Successfully processed patient=${adherentName} referralId=${referralId} row=${rowId}`,
+          files
+        );
       } catch (err) {
-        console.error(`❌ Failed on row ${i + 1}:`, err.message);
-        results.failed.push({
-          row: i + 1,
-          reason: err.message,
-        });
+        console.error(
+          `❌ Failed on patient=${adherentName} referralId=${referralId} row=${rowId}:`,
+          err.message
+        );
+        results[i].detailsPageError = err.message;
       }
 
-      // Optional throttle
-      await page.waitForTimeout(600);
+      await goBack(page);
+      await page.waitForTimeout(25);
     })
   );
 

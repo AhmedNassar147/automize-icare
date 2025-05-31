@@ -4,24 +4,44 @@
  *
  */
 const checkStopModalAndCloseIt = async (page) => {
-  const modalSelector = "div.ui-dialog";
-  const closeBtnSelector = "button.ui-dialog-titlebar-close";
+  const closeBtnSelector = ".ui-dialog-titlebar-close";
 
   try {
-    // Wait for the modal, timeout quickly if not found
-    const diaglog = await page.waitForSelector(modalSelector, {
-      timeout: 4000,
+    // Try closing the modal from the main document
+    await page.waitForSelector(closeBtnSelector, {
+      visible: true,
+      timeout: 3000,
     });
+    await page.click(closeBtnSelector);
+    console.log("Modal closed from main page");
+  } catch (mainError) {
+    console.warn("Main page modal close failed, trying iframe...");
 
-    if (diaglog) {
-      // Modal found, click close button
-      await page.click(closeBtnSelector);
+    try {
+      // If not found in main page, try iframe
+      const frameHandle = await page.$("iframe"); // replace with actual iframe selector if needed
+
+      let frame;
+
+      if (frameHandle) {
+        frame = await frameHandle.contentFrame();
+      }
+
+      if (frame) {
+        await frame.waitForSelector(closeBtnSelector, {
+          visible: true,
+          timeout: 3000,
+        });
+        await frame.click(closeBtnSelector);
+        console.log("Modal closed from iframe");
+      } else {
+        console.warn("Iframe not found or not accessible");
+      }
+    } catch (iframeError) {
+      console.error("Failed to close modal in both main page and iframe");
+      console.error("Main Error:", mainError.message);
+      console.error("Iframe Error:", iframeError.message);
     }
-
-    console.log("Modal found and closed.");
-  } catch (error) {
-    // Timeout means modal not found, so do nothing or handle accordingly
-    console.log("Modal not found, nothing to close.");
   }
 };
 

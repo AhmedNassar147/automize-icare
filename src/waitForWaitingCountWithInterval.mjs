@@ -3,32 +3,58 @@
  * helper: `waitForWaitingCountWithInterval`.
  *
  */
-const waitForWaitingCountWithInterval = async (page, intervalMs = 1000) => {
+
+const STATUS = {
+  WAITING: {
+    countFieldSelector: "spfnc_waiting_confirmation_referral",
+    pupultaeFnText: "fnc_waiting_confirmation_referral",
+    foundCountText: "waiting confirmation referrals",
+    noCountText: "No waiting confirmation referrals found",
+  },
+  CONFIRMED: {
+    countFieldSelector: "spfnc_confirmed_referral_requests",
+    pupultaeFnText: "fnc_confirmed_referral_requests",
+    foundCountText: "confirmed referrals requests",
+    noCountText: "No confirmed referrals requests found",
+  },
+};
+
+const waitForWaitingCountWithInterval = async (
+  page,
+  collectConfimrdPatient = false,
+  intervalMs = 1000
+) => {
   return new Promise((resolve) => {
     let intervalId;
 
+    const { countFieldSelector, pupultaeFnText, foundCountText, noCountText } =
+      STATUS[collectConfimrdPatient ? "CONFIRMED" : "WAITING"];
+
     const check = async () => {
-      const waitingCount = await page.evaluate(() => {
-        const span = document.querySelector(
-          "#spfnc_waiting_confirmation_referral"
-        );
-        return span ? parseInt(span.textContent.trim(), 10) : 0;
-      });
+      const waitingCount = await page.evaluate(
+        ({ countFieldSelector }) => {
+          const span = document.getElementById(countFieldSelector);
+          return span ? parseInt(span.textContent.trim(), 10) : 0;
+        },
+        { countFieldSelector }
+      );
 
       if (waitingCount > 0) {
-        console.log(
-          `🔔 There are ${waitingCount} waiting confirmation referrals.`
+        console.log(`🔔 There are ${waitingCount} ${foundCountText}.`);
+
+        await page.evaluate(
+          ({ pupultaeFnText }) => {
+            const anchor = document.querySelector(
+              // `a[onclick^="populateNotificationsMOHTable(\'${pupultaeFnText}"]`
+              `a[onclick^="populateNotificationsMOHTable('${pupultaeFnText}'"]`
+            );
+
+            if (anchor) {
+              anchor.click();
+            }
+          },
+          { pupultaeFnText }
         );
-
-        await page.evaluate(() => {
-          const anchor = document.querySelector(
-            'a[onclick^="populateNotificationsMOHTable(\'fnc_waiting_confirmation_referral"]'
-          );
-
-          if (anchor) {
-            anchor.click();
-          }
-        });
 
         if (intervalId) {
           clearInterval(intervalId);
@@ -36,9 +62,9 @@ const waitForWaitingCountWithInterval = async (page, intervalMs = 1000) => {
         resolve(waitingCount);
       } else {
         console.log(
-          `✅ No waiting confirmation referrals found, will check again in ${
+          `✅ ${noCountText}, will check again in ${
             intervalMs / 1000
-          } seconds...`
+          } seconds..`
         );
       }
     };

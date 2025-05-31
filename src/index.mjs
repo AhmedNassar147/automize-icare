@@ -3,140 +3,134 @@
  * Index
  *
  */
-import { writeFile, mkdir } from "fs/promises";
+// import fs from "fs";
 import puppeteer from "puppeteer";
 import waitForWaitingCountWithInterval from "./waitForWaitingCountWithInterval.mjs";
-import getDateBasedTimezone from "./getDateBasedTimezone.mjs";
 import extractWaitingReferalTableData from "./extractWaitingReferalTableData.mjs";
 import openPatientsDetailsPageAndDownloadDocuments from "./openPatientsDetailsPageAndDownloadDocuments.mjs";
+import writePatientData from "./writePatientData.mjs";
+// import generateAcceptancePdfLetters from "./generatePdfs.mjs";
+import generateFolderIfNotExisting from "./generateFolderIfNotExisting.mjs";
+// import generate_pdf from "./generate_pdf.mjs";
+import {
+  waitingPatientsFolderDirectory,
+  patientsGeneratedPdfsFolderDirectory,
+} from "./constants.mjs";
 
-// 1- which value from table record inserted in the pdf
+// install gs from https://ghostscript.com/releases/gsdnld.html
+
 // 2- take iamge of the capture of the pdf
-// 3- take html of the modal to close
+// 4- suppose cancel request
+// ----------------------------------------
 
 (async () => {
-  const currentWorkingDirectory = process.cwd();
+  try {
+    // await generate_pdf()
+    //   .then((pdfBytes) => {
+    //     fs.writeFileSync(`${process.cwd()}/results/referral.pdf`, pdfBytes);
+    //     console.log("PDF generated successfully!");
+    //   })
+    //   .catch((error) => console.log(error));
+    // return;
 
-  const browser = await puppeteer.launch({ headless: false }); // Set true for no UI
-  const page = await browser.newPage();
+    await generateFolderIfNotExisting(waitingPatientsFolderDirectory);
+    await generateFolderIfNotExisting(patientsGeneratedPdfsFolderDirectory);
 
-  // 1. Go to login page
-  await page.goto("https://purchasingprogramsaudi.com/index.cfm", {
-    waitUntil: "networkidle2",
-  });
+    const browser = await puppeteer.launch({ headless: false }); // Set true for no UI
+    const page = await browser.newPage();
 
-  // Step 1: Wait for user to log in manually
-  console.log("🕒 Waiting for user to log in...");
+    // await generateAcceptancePdfLetters(browser, [
+    //   {
+    //     referralId: "124321",
+    //     ihalatiReferralId: "2030269",
+    //     requestedDate: "2022-01-02 23:09:00.0",
+    //     adherentId: "33101631",
+    //     adherentName: "Mohamed X Al shahrany",
+    //     nationalId: "1036226577",
+    //     referralType: "Long Term Care",
+    //     requiredSpecialty: "Extended Care",
+    //     sourceZone: "Asir",
+    //     providerSourceName: "Asir Central Hospital",
+    //   },
+    //   {
+    //     referralId: "127449",
+    //     ihalatiReferralId: "2100526",
+    //     requestedDate: "2022-02-19 07:44:00.0",
+    //     adherentId: "33267273",
+    //     adherentName: "Nawy X al shehry",
+    //     nationalId: "1040073593",
+    //     referralType: "Long Term Care",
+    //     requiredSpecialty: "Extended Care",
+    //     sourceZone: "Bisha",
+    //     providerSourceName: "King Abdullah Hospital",
+    //   },
+    // ]);
 
-  // Step 2: Wait until a selector only present after login appears
-  const homePageSelector = await page.waitForSelector(
-    "#icare_global_header_menu",
-    {
-      timeout: 9 * 60 * 1000, // wait max 9 minutes
-    }
-  );
+    // return;
 
-  if (!homePageSelector) {
-    console.log("✅ User did not log in!");
-    return;
-  }
-
-  console.log("✅ Logged in successfully!");
-
-  // New step: Check if the span has value > 0
-  // New step: Re-Check every 1 seconds if value < 1
-  const count = await waitForWaitingCountWithInterval(page, 400);
-
-  await page.waitForSelector("#tblOutNotificationsTable tbody", {
-    timeout: 5 * 60 * 1000, // wait max 5 minutes,
-  });
-
-  const foundDataInWatingTable = await extractWaitingReferalTableData(page);
-
-  const { dateString, time } = getDateBasedTimezone();
-
-  const currentResultFolderDirectory = `${currentWorkingDirectory}/results/${dateString}`;
-  const currentpatientsFolderDirectory = `${currentResultFolderDirectory}/waiting-patients`;
-
-  await mkdir(currentpatientsFolderDirectory, {
-    recursive: true,
-  });
-
-  const currentDateTime = time.replace(/:/g, ".");
-
-  const patientsDataFile = `${currentpatientsFolderDirectory}/${currentDateTime}.json`;
-
-  await writeFile(
-    patientsDataFile,
-    JSON.stringify(
-      {
-        count,
-        foundDataInWatingTable,
-      },
-      null,
-      2
-    )
-  );
-
-  // Get all "View" link elements
-  const viewLinks = await page.$$(
-    "#tblOutNotificationsTable tbody tr td a.input_btn"
-  );
-
-  const patientsLength = foundDataInWatingTable.length;
-  const viewLinksLength = viewLinks.length;
-
-  console.log(
-    `✅ WaitngCount=${count}, PatientsCount=${patientsLength} and ViewButtonsCount=${viewLinksLength}`
-  );
-
-  const [firstViewLink] = viewLinks;
-
-  console.log("firstViewLink", firstViewLink);
-
-  return;
-
-  const { succeeded, failed } =
-    await openPatientsDetailsPageAndDownloadDocuments({
-      browser,
-      page,
-      viewLinks: [firstViewLink],
+    // 1. Go to login page
+    await page.goto("https://purchasingprogramsaudi.com/Index.cfm", {
+      waitUntil: "networkidle2",
     });
 
-  // when clicking the accept input button
-  //  page.click('#accept')
+    // Step 1: Wait for user to log in manually
+    console.log("🕒 Waiting for user to log in...");
 
-  // Modify all view links to open in a new tab
-  // const viewUrls = await page.evaluate(() => {
-  //   const links = Array.from(document.querySelectorAll('#tblOutNotificationsTable tbody a.input_btn'));
-  //   links.forEach(link => link.setAttribute('target', '_blank'));
-  //   return links.map(link => {
-  //     const onclick = link.getAttribute('onclick');
-  //     const match = onclick && onclick.match(/navigate\(['"]([^'"]+)/);
-  //     return match ? 'https://purchasingprogramsaudi.com' + match[1] : null;
-  //   }).filter(Boolean);
-  // });
+    // Step 2: Wait until a selector only present after login appears
+    const homePageSelector = await page.waitForSelector(
+      "#icare_global_header_menu",
+      {
+        timeout: 9 * 60 * 1000, // wait max 9 minutes
+      }
+    );
 
-  // console.log(`🔗 Found ${viewUrls.length} URLs to open.`);
+    if (!homePageSelector) {
+      console.log("✅ User did not log in!");
+      return;
+    }
 
-  // for (const [index, url] of viewUrls.entries()) {
-  //   const newTab = await browser.newPage();
-  //   console.log(`🧭 Opening tab ${index + 1}: ${url}`);
-  //   await newTab.goto(url, { waitUntil: 'domcontentloaded' });
+    console.log("✅ User Logged in successfully!");
 
-  //   // Optional: Extract something from the new tab
-  //   const pageTitle = await newTab.title();
-  //   console.log(`📄 Tab ${index + 1} title: ${pageTitle}`);
+    // New step: Check if the span has value > 0
+    // New step: Re-Check every 200 ms if value < 1
+    const count = await waitForWaitingCountWithInterval(page, 200);
 
-  //   // Optionally close the tab after processing
-  //   await newTab.close();
-  // }
+    // await page.waitForSelector("#tblOutNotificationsTable tbody", {
+    //   timeout: 3 * 60 * 1000, // wait max 3 minutes,
+    // });
 
-  // 5. Screenshot for verification
-  // await page.screenshot({
-  //   path: "../screenshot/after-login.png",
-  //   fullPage: true,
-  //   optimizeForSpeed: true,
-  //   omitBackground: true,
-  // });
+    const patientsData = await extractWaitingReferalTableData(page);
+
+    await writePatientData({
+      count,
+      patientsData,
+    });
+
+    const patientsWithFiles = await openPatientsDetailsPageAndDownloadDocuments(
+      {
+        browser,
+        page,
+        patientsData,
+      }
+    );
+
+    await writePatientData({
+      patientsData: patientsWithFiles,
+    });
+
+    // when clicking the accept input button
+    //  page.click('#accept')
+  } catch (error) {
+    console.error("❌ An error occurred:", error.message);
+    console.error("Stack trace:", error.stack);
+  }
 })();
+
+// timer
+// //<div id="submit_div" style="float:left;padding-top: 30px;margin-left:300px;">
+
+//      <div id="dvError" style="color:#006 !important;font-weight:bold;font-size:14px;">You still have to wait for 13 minutes to be able to take any action.Kindly refresh the page.</div>
+
+// </div>
+
+// https://purchasingprogramsaudi.com/OpenAttach.cfm?fileName=MH2-H50982_9518690_3_0.560148522034.pdf&Ext=pdf

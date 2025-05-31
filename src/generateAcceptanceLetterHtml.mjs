@@ -6,14 +6,15 @@
 const generateAcceptanceLetterHtml = ({
   referralId,
   requestedDate,
-  ihalatiReferralId,
-  adherentId,
   adherentName,
   nationalId,
   referralType,
   requiredSpecialty,
-  sourceZone,
   providerSourceName,
+  nationality,
+  // sourceZone,
+  // ihalatiReferralId,
+  // adherentId,
 }) => {
   const [date] = (requestedDate || "").split(" ");
   const [year, month, day] = date.split("-");
@@ -25,13 +26,8 @@ const generateAcceptanceLetterHtml = ({
 <head>
   <meta charset="UTF-8" />
     <title>نموذج الإحالة</title>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@400;700&display=swap"
-      rel="stylesheet"
-    />
     <style>
       body {
-        font-family: "Noto Naskh Arabic", serif;
         background-color: #ffffff;
         direction: rtl;
         padding: 15px;
@@ -95,20 +91,11 @@ const generateAcceptanceLetterHtml = ({
 
       .footer {
         text-align: center;
-        margin-top: 30px;
-      }
-
-      .stamp {
-        text-align: center;
-        margin-top: 20px;
-      }
-
-      .stamp img {
-        height: 80px;
+        margin-top: 10px;
       }
 
       .notes-section {
-        margin-top: 40px;
+        margin-top: 15px;
         border-top: 3px solid #c8b789;
         padding-top: 10px;
       }
@@ -149,20 +136,18 @@ const generateAcceptanceLetterHtml = ({
       .notes-footer div:last-child {
         border-left: none;
       }
-
-      @media print {
-        html,
-        body {
-          zoom: 89%; /* Try values between 70% and 90% */
+        @media print {
+          html,
+          body {
+          zoom: 100%;
           margin: 0;
           padding: 0;
         }
 
         @page {
           size: A4;
-          margin: none;
+          margin: 10mm; /* مثال لهامش مناسب */
         }
-
         table,
         tr,
         td {
@@ -176,14 +161,14 @@ const generateAcceptanceLetterHtml = ({
       <div class="header">
         <div class="header-logos">
           <img
-            src="https://upload.wikimedia.org/wikipedia/ar/c/cf/MOH_Referral_Program_Logo.png"
+            src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAKBueIx4ZKCMgoy0qqC+8P//8Nzc8P//////////////////////////////////////////////////////////2wBDAaq0tPDS8P//////////////////////////////////////////////////////////////////////////////wAARCABAAGUDASIAAhEBAxEB/8QAFwABAQEBAAAAAAAAAAAAAAAAAAECA//EAB0QAQEBAAIDAQEAAAAAAAAAAAABEQIhEjFBUWH/xAAVAQEBAAAAAAAAAAAAAAAAAAAAAf/EABURAQEAAAAAAAAAAAAAAAAAAAAB/9oADAMBAAIRAxEAPwDsAAAAbP0YsSjcsozxnbSgAAAAAAAAl5YrCUanKfei3+Jxmpt439gNSz2eW+ozJs1qXQWUBQAAAABKClkqLoGYnjDafQJxk9FkpvZ2ChqaChAAAAtwATV0wwDU1cMBF0MA1NXDAAAAAf/Z"
             alt="Referral Program"
           />
           <div class="header-center-text">
             المملكة العربية السعودية<br />وزارة الصحة<br />برنامج الإحالة
           </div>
           <img
-            src="https://upload.wikimedia.org/wikipedia/commons/3/3a/Saudi_Arabia_Ministry_of_Health_Logo.png"
+            src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAKBueIx4ZKCMgoy0qqC+8P//8Nzc8P//////////////////////////////////////////////////////////2wBDAaq0tPDS8P//////////////////////////////////////////////////////////////////////////////wAARCAA/AGkDASIAAhEBAxEB/8QAFwABAQEBAAAAAAAAAAAAAAAAAAECA//EACAQAQEAAgIDAQADAAAAAAAAAAABESECMRJRYUEigbH/xAAVAQEBAAAAAAAAAAAAAAAAAAAAAf/EABURAQEAAAAAAAAAAAAAAAAAAAAB/9oADAMBAAIRAxEAPwDsAAAAnnx9lmYx4/y/oSt+fH2suenKcdS/XTjMBFAFAAAAAALcJm/FszMM+E18BfL3EtvckaYurqgTljVmGvKfm2e+0xeO+O4I3m+iX2k5z90uZehVAAAAAAzvAklmDHyAqYiYuFxr8AuN66XqJi7+lmQNX8M96TH+lnf0GhmzbQAAAAJimL7UBMU2oBtMaUBMUxVATFUAAAf/2Q=="
             alt="Ministry of Health"
           />
         </div>
@@ -198,7 +183,7 @@ const generateAcceptanceLetterHtml = ({
         <tr>
           <td><strong>اسم المريض:</strong> ${adherentName}</td>
           <td><strong>رقم الإثبات:</strong> ${nationalId}</td>
-          <td><strong>الجنسية:</strong> SAUDI</td>
+          <td><strong>الجنسية:</strong> ${nationality || "SAUDI"}</td>
           <td><strong>رقم التواصل:</strong> -</td>
         </tr>
 
@@ -206,9 +191,9 @@ const generateAcceptanceLetterHtml = ({
           <td colspan="4">بيانات القبول</td>
         </tr>
         <tr>
-          <td><strong>رقم الملف الطبي:</strong> ${ihalatiReferralId}</td>
-          <td><strong>القسم:</strong> ${referralType}</td>
-          <td><strong>الطبيب المعالج:</strong> ${requiredSpecialty}</td>
+          <td><strong>رقم الملف الطبي:</strong></td>
+          <td><strong>القسم:</strong> ${referralType || ""}</td>
+          <td><strong>الطبيب المعالج:</strong> ${requiredSpecialty || ""}</td>
           <td><strong>رقم الغرفة:</strong></td>
         </tr>
         <tr>
@@ -225,7 +210,7 @@ const generateAcceptanceLetterHtml = ({
 
       <p>
         سعادة مدير مستشفى /
-        <strong>Maternity and Children Hospital Abha</strong> المحترم
+        <strong>${providerSourceName}</strong> المحترم
       </p>
       <p>السلام عليكم ورحمة الله وبركاته،</p>
       <p>
@@ -242,10 +227,6 @@ const generateAcceptanceLetterHtml = ({
       <div class="footer">
         <p>وتقبلوا تحياتنا</p>
         <p><strong>TADAWI MEDICAL HOSPITAL</strong></p>
-      </div>
-
-      <div class="stamp">
-        <img src="https://i.imgur.com/ZgYkRDI.png" alt="TADAWI STAMP" />
       </div>
 
       <div class="notes-section">
