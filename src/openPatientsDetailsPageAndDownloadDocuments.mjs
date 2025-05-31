@@ -7,6 +7,7 @@ import downloadDocumentsFromPopupViewer from "./downloadDocumentsFromPopupViewer
 import checkStopModalAndCloseIt from "./checkStopModalAndCloseIt.mjs";
 import navigateToPatientDetailsPage from "./navigateToPatientDetailsPage.mjs";
 import goBack from "./goBack.mjs";
+import sleep from "./sleep.mjs";
 import getSelectedNationalityFromDropdwon from "./getSelectedNationalityFromDropdwon.mjs";
 
 const openPatientsDetailsPageAndDownloadDocuments = async ({
@@ -52,7 +53,7 @@ const openPatientsDetailsPageAndDownloadDocuments = async ({
     }
 
     await goBack(page);
-    await page.waitForTimeout(10);
+    await sleep(15);
     currentIndex++;
   }
 

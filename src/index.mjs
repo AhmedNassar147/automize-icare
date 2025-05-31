@@ -137,11 +137,10 @@ import {
       }
     );
 
-    await writePatientData({
-      patientsData: patientsWithFiles,
-      extraFileName: "patientsWithFiles",
-    });
+    await writePatientData(patientsWithFiles, "patientsWithFiles");
+
     console.timeEnd("fetchingEveryPatientDetails");
+    await browser.close();
 
     // when clicking the accept input button
     //  page.click('#accept')
