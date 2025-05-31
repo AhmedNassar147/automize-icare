@@ -91,6 +91,8 @@ import {
 
     console.log("✅ User Logged in successfully!");
 
+    console.time("collectingPatient");
+
     // New step: Check if the span has value > 0
     // New step: Re-Check every 200 ms if value < 1
     const count = await waitForWaitingCountWithInterval(page, 200);
@@ -105,7 +107,9 @@ import {
       count,
       patientsData,
     });
+    console.timeEnd("collectingPatient");
 
+    console.time("fetchingEveryPatientDetails");
     const patientsWithFiles = await openPatientsDetailsPageAndDownloadDocuments(
       {
         browser,
@@ -117,6 +121,7 @@ import {
     await writePatientData({
       patientsData: patientsWithFiles,
     });
+    console.timeEnd("fetchingEveryPatientDetails");
 
     // when clicking the accept input button
     //  page.click('#accept')
