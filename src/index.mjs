@@ -9,12 +9,14 @@ import waitForWaitingCountWithInterval from "./waitForWaitingCountWithInterval.m
 import extractWaitingReferalTableData from "./extractWaitingReferalTableData.mjs";
 import openPatientsDetailsPageAndDownloadDocuments from "./openPatientsDetailsPageAndDownloadDocuments.mjs";
 import writePatientData from "./writePatientData.mjs";
-// import generateAcceptancePdfLetters from "./generatePdfs.mjs";
 import generateFolderIfNotExisting from "./generateFolderIfNotExisting.mjs";
+import readJsonFile from "./readJsonFile.mjs";
+// import generateAcceptancePdfLetters from "./generatePdfs.mjs";
 // import generate_pdf from "./generate_pdf.mjs";
 import {
   waitingPatientsFolderDirectory,
   patientsGeneratedPdfsFolderDirectory,
+  configFilePath,
 } from "./constants.mjs";
 
 // install gs from https://ghostscript.com/releases/gsdnld.html
@@ -35,8 +37,14 @@ import {
 
     await generateFolderIfNotExisting(waitingPatientsFolderDirectory);
     await generateFolderIfNotExisting(patientsGeneratedPdfsFolderDirectory);
+    const { userName, password } = await readJsonFile(configFilePath, true);
 
-    const browser = await puppeteer.launch({ headless: false }); // Set true for no UI
+    const browser = await puppeteer.launch({
+      headless: false,
+      defaultViewport: null, // Allow full window resizing
+      args: ["--start-maximized"], // Maximize window on launch
+    });
+
     const page = await browser.newPage();
 
     // await generateAcceptancePdfLetters(browser, [
@@ -73,6 +81,9 @@ import {
       waitUntil: "networkidle2",
     });
 
+    await page.type("#j_username", userName);
+    await page.type("#j_password", password);
+
     // Step 1: Wait for user to log in manually
     console.log("🕒 Waiting for user to log in...");
 
@@ -91,15 +102,27 @@ import {
 
     console.log("✅ User Logged in successfully!");
 
+    await page.waitForNetworkIdle({
+      idleTime: 1.5 * 60 * 1000, // wait max 1.5 minutes
+    });
+
     console.time("collectingPatient");
 
     // New step: Check if the span has value > 0
     // New step: Re-Check every 200 ms if value < 1
-    const count = await waitForWaitingCountWithInterval(page, 200);
+    const count = await waitForWaitingCountWithInterval(page, true, 200);
 
-    // await page.waitForSelector("#tblOutNotificationsTable tbody", {
-    //   timeout: 3 * 60 * 1000, // wait max 3 minutes,
-    // });
+    await page.waitForFunction(
+      () => {
+        const rows = document.querySelectorAll(
+          "#tblOutNotificationsTable tbody tr"
+        );
+        return rows.length >= 2;
+      },
+      {
+        timeout: 6 * 60 * 1000, // 6 minutes
+      }
+    );
 
     const patientsData = await extractWaitingReferalTableData(page);
 
@@ -108,6 +131,8 @@ import {
       patientsData,
     });
     console.timeEnd("collectingPatient");
+
+    return;
 
     console.time("fetchingEveryPatientDetails");
     const patientsWithFiles = await openPatientsDetailsPageAndDownloadDocuments(

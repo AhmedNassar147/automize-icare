@@ -11,25 +11,30 @@ const extractWaitingReferalTableData = async (page) => {
         .replace(/[^a-zA-Z0-9]+(.)/g, (_, chr) => chr.toUpperCase())
         .replace(/\s+/g, "");
 
-    const table = document.querySelector("#tblOutNotificationsTable");
+    const table = document.getElementById("tblOutNotificationsTable");
     if (!table) {
+      console.log("❌ Table not found");
       return [];
     }
 
-    const headers = Array.from(table.querySelectorAll("thead th")).slice(0, -1);
-    const keys = headers.map((th) => toCamelCase(th.textContent.trim()));
+    const headers = Array.from(table.querySelectorAll("thead th"));
+    const keys = headers
+      .slice(0, -1) // Optional: you can remove this if your headers match exactly
+      .map((th) => toCamelCase(th.textContent.trim()));
 
     const rows = Array.from(table.querySelectorAll("tbody tr"));
 
     return rows.map((row) => {
       const obj = {};
-      const cells = Array.from(row.querySelectorAll("td")).slice(0, -1);
+      const cells = Array.from(row.querySelectorAll("td"));
+
       cells.forEach((cell, idx) => {
-        obj[keys[idx]] = (cell.textContent || "").trim();
+        if (idx < keys.length) {
+          obj[keys[idx]] = (cell.textContent || "").trim();
+        }
       });
 
       const actionLink = row.querySelector("a.input_btn");
-
       if (actionLink) {
         const onclickAttr = actionLink.getAttribute("onclick") || "";
         const start = onclickAttr.indexOf("ColdFusion.navigate('");
