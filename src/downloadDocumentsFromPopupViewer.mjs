@@ -5,7 +5,7 @@
  */
 import { URL } from "node:url";
 import openPopupDocumentsViewer from "./openPopupDocumentsViewer.mjs";
-// import downloadAsBase64 from "./downloadAsBase64.mjs";
+import downloadAsBase64 from "./downloadAsBase64.mjs";
 
 const downloadDocumentsFromPopupViewer = async (browser, page) => {
   const [popupPage, baseUrl] = await openPopupDocumentsViewer(browser, page);
