@@ -51,9 +51,9 @@ const openPatientsDetailsPageAndDownloadDocuments = async ({
       );
     }
 
-    await goBack(page);
-    // await page.waitForTimeout(10);
     currentIndex++;
+    await goBack(page);
+    await page.waitForTimeout(10);
   }
 
   return results;

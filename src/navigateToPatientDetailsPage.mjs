@@ -14,13 +14,13 @@ const navigateToPatientDetailsPage = async (page, relativePath) => {
   });
 
   if (hasColdFusionNavigate) {
+    console.log(`Trying Navigation using ColdFusion.navigate`);
     await page.evaluate((ref) => {
       ColdFusion.navigate(ref, "WorkArea");
     }, relativePath);
-    console.log(`Navigated using ColdFusion.navigate`);
   } else {
     const url = createAbsoluteUrl(page, relativePath);
-    console.log(`Navigated using page.goto`);
+    console.log(`Trying Navigation using page.goto`);
     await page.goto(url);
   }
 

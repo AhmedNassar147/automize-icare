@@ -12,7 +12,7 @@
 
 const goBack = async (page) =>
   await Promise.all([
-    page.waitForNavigation(), // The promise resolves after navigation has finished
+    page.waitForNavigation({ waitUntil: "domcontentloaded" }), // The promise resolves after navigation has finished
     page.click("#icare_global_header_logo a"),
   ]);
 
