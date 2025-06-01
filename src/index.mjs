@@ -162,9 +162,12 @@ const collectConfimrdPatient = true;
         };
       };
 
-      const fullMessage = addedPatients.map(formatPatient);
+      const messages = addedPatients.map(formatPatient);
 
-      await sendMessageUsingWhatsapp(fullMessage);
+      while (messages.length) {
+        const [item] = messages.splice(0, 1);
+        await sendMessageUsingWhatsapp(item);
+      }
     });
 
     // when clicking the accept input button

@@ -35,7 +35,7 @@ const findWaitingPatientsAndGetTheirDetails = async ({
 
   const patientsData = await extractWaitingReferalTableData(page);
 
-  console.log("patientsData", JSON.stringify(patientsData, null, 2));
+  // console.log("patientsData", JSON.stringify(patientsData, null, 2));
 
   console.time("fetchingEveryPatientDetails");
 
