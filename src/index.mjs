@@ -88,10 +88,10 @@ const collectConfimrdPatient = true;
 
     patientsStore.on("startCollectingPatients", async () => {
       console.log("startCollectingPatients starts");
+
       const newPage = await browser.newPage();
 
       try {
-        // 1. Go to login page
         await newPage.goto("https://purchasingprogramsaudi.com/Index.cfm", {
           waitUntil: "networkidle2",
         });
@@ -144,21 +144,9 @@ const collectConfimrdPatient = true;
           `📍 Zone: ${sourceZone}\n` +
           `📅 Requested: ${requestedDate}\n`;
 
-        const _files = Array.isArray(files)
-          ? files.reduce((acc, { extension, fileBase64 }) => {
-              if (extension && fileBase64) {
-                const mimeType = getMimeType(extension);
-                const fileName = `document.${extension}`;
-                return [...(acc || []), { mimeType, fileBase64, fileName }];
-              }
-
-              return acc;
-            }, undefined)
-          : undefined;
-
         return {
           message,
-          files: _files,
+          files: files,
         };
       };
 

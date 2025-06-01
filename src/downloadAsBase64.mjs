@@ -3,51 +3,41 @@
  * Helper: `downloadAsBase64`.
  *
  */
-import https from "node:https";
 import { URL } from "node:url";
 
-const downloadAsBase64 = (fileUrl, cookieHeader) =>
-  new Promise((resolve, reject) => {
-    const chunks = [];
-    const url = new URL(fileUrl);
+const downloadAsBase64 = async ({ fileUrl, fileName }) => {
+  const url = new URL(fileUrl);
+  const extension = url.searchParams.get("Ext").toLowerCase();
 
-    const options = {
-      hostname: url.hostname,
-      path: url.pathname + url.search,
-      protocol: url.protocol,
-      port: url.port || (url.protocol === "https:" ? 443 : 80),
-      headers: {},
-    };
+  try {
+    const response = await fetch(fileUrl);
 
-    const extension = url.searchParams.get("Ext");
-
-    if (cookieHeader) {
-      options.headers.Cookie = cookieHeader;
+    if (!response.ok) {
+      return {
+        fileUrl,
+        extension,
+        fileName,
+        message: `Failed to download: ${fileUrl} (status ${response.status})`,
+      };
     }
 
-    https
-      .get(options, (res) => {
-        if (res.statusCode !== 200) {
-          return resolve({
-            fileUrl,
-            extension,
-            message: `Failed to download: ${fileUrl} (status ${res.statusCode})`,
-          });
-        }
+    const arrayBuffer = await response.arrayBuffer();
+    const base64 = Buffer.from(arrayBuffer).toString("base64");
 
-        res.on("data", (chunk) => chunks.push(chunk));
-        res.on("end", () => {
-          const buffer = Buffer.concat(chunks);
-          const base64 = buffer.toString("base64");
-
-          resolve({
-            fileUrl,
-            extension,
-            fileBase64: base64,
-          });
-        });
-      })
-      .on("error", reject);
-  });
+    return {
+      fileUrl,
+      extension,
+      fileName,
+      fileBase64: base64,
+    };
+  } catch (error) {
+    return {
+      fileUrl,
+      extension,
+      fileName,
+      message: error,
+    };
+  }
+};
 
 export default downloadAsBase64;

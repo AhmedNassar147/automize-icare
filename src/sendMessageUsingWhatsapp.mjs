@@ -5,6 +5,7 @@
  */
 import qrcode from "qrcode-terminal";
 import pkg from "whatsapp-web.js";
+import getMimeType from "./getMimeType.mjs";
 
 const { Client, LocalAuth, MessageMedia } = pkg;
 
@@ -35,10 +36,16 @@ const sendMessageUsingWhatsapp = async (messages) => {
       console.log("Message sent!");
 
       if (Array.isArray(files)) {
-        console.log("Sending files!");
-        for (const { mimeType, fileBase64, fileName } of files) {
-          const media = new MessageMedia(mimeType, fileBase64, fileName);
-          await client.sendMessage(chatId, media);
+        console.log("Sending files ...");
+
+        for (const { extension, fileBase64, fileName } of files) {
+          if (extension && fileBase64) {
+            const mimeType = getMimeType(extension);
+            const _fileName = `${fileName || "document"}.${extension || "bin"}`;
+
+            const media = new MessageMedia(mimeType, fileBase64, _fileName);
+            await client.sendMessage(chatId, media);
+          }
         }
       }
     } catch (error) {
@@ -50,9 +57,11 @@ const sendMessageUsingWhatsapp = async (messages) => {
   client.on("ready", async () => {
     console.log("WhatsApp is ready!");
 
-    while (messages.length) {
-      const [item] = messages.splice(0, 1);
-      await sendMessageWithFiles(item);
+    const clonedMessages = [...messages];
+
+    while (clonedMessages.length) {
+      const [message] = clonedMessages.splice(0, 1);
+      await sendMessageWithFiles(message);
     }
   });
 

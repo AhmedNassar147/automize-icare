@@ -12,6 +12,8 @@ const getMimeType = (extension) => {
       return "image/jpeg";
     case "png":
       return "image/png";
+    case "mp4":
+      return "video/mp4";
     default:
       return "application/octet-stream";
   }

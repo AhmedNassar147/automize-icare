@@ -26,13 +26,6 @@ const findWaitingPatientsAndGetTheirDetails = async ({
     return rows.length >= 2;
   });
 
-  await page.waitForFunction(() => {
-    const rows = document.querySelectorAll(
-      "#tblOutNotificationsTable tbody tr"
-    );
-    return rows.length >= 2;
-  });
-
   const patientsData = await extractWaitingReferalTableData(page);
 
   // console.log("patientsData", JSON.stringify(patientsData, null, 2));
