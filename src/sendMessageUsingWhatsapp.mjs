@@ -13,7 +13,7 @@ const number = "966569157706"; // Saudi Arabia number
 // const number = "201093184489"; // Saudi Arabia number
 const chatId = `${number}@c.us`;
 
-const sendMessageUsingWhatsapp = async ({ message, files }) => {
+const sendMessageUsingWhatsapp = async (messages) => {
   // Create WhatsApp client
   const client = new Client({
     authStrategy: new LocalAuth(),
@@ -29,10 +29,7 @@ const sendMessageUsingWhatsapp = async ({ message, files }) => {
     qrcode.generate(qr, { small: true });
   });
 
-  // Ready
-  client.on("ready", async () => {
-    console.log("WhatsApp is ready!");
-
+  const sendMessageWithFiles = async ({ message, files }) => {
     try {
       await client.sendMessage(chatId, message);
       console.log("Message sent!");
@@ -46,6 +43,16 @@ const sendMessageUsingWhatsapp = async ({ message, files }) => {
       }
     } catch (error) {
       console.log("Failed to send message!", error);
+    }
+  };
+
+  // Ready
+  client.on("ready", async () => {
+    console.log("WhatsApp is ready!");
+
+    while (messages.length) {
+      const [item] = messages.splice(0, 1);
+      await sendMessageWithFiles(item);
     }
   });
 

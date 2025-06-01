@@ -164,10 +164,7 @@ const collectConfimrdPatient = true;
 
       const messages = addedPatients.map(formatPatient);
 
-      while (messages.length) {
-        const [item] = messages.splice(0, 1);
-        await sendMessageUsingWhatsapp(item);
-      }
+      await sendMessageUsingWhatsapp(messages);
     });
 
     // when clicking the accept input button
