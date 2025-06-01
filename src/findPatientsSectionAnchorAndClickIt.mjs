@@ -18,6 +18,7 @@ const findPatientsSectionAnchorAndClickIt = async (page, pupultaeFnText) => {
   );
 
   await page.waitForNetworkIdle();
+  // await sleep(150);
 };
 
 export default findPatientsSectionAnchorAndClickIt;

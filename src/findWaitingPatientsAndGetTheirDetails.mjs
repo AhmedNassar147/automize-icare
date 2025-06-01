@@ -4,7 +4,6 @@
  *
  */
 import extractWaitingReferalTableData from "./extractWaitingReferalTableData.mjs";
-import clickAppLogo from "./clickAppLogo.mjs";
 import findPatientsSectionAnchorAndClickIt from "./findPatientsSectionAnchorAndClickIt.mjs";
 import openPatientsDetailsPageAndDownloadDocuments from "./openPatientsDetailsPageAndDownloadDocuments.mjs";
 import writePatientData from "./writePatientData.mjs";
@@ -18,9 +17,14 @@ const findWaitingPatientsAndGetTheirDetails = async ({
   const { pupultaeFnText } =
     PATIENT_SECTIONS_STATUS[collectConfimrdPatient ? "CONFIRMED" : "WAITING"];
 
-  await clickAppLogo(page);
-
   await findPatientsSectionAnchorAndClickIt(page, pupultaeFnText);
+
+  await page.waitForFunction(() => {
+    const rows = document.querySelectorAll(
+      "#tblOutNotificationsTable tbody tr"
+    );
+    return rows.length >= 2;
+  });
 
   await page.waitForFunction(() => {
     const rows = document.querySelectorAll(

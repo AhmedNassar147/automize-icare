@@ -12,7 +12,7 @@
 
 const clickAppLogo = async (page) =>
   await Promise.all([
-    await page.waitForNetworkIdle(),
+    page.waitForNetworkIdle(),
     page.click("#icare_global_header_logo a"),
   ]);
 

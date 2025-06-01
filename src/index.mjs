@@ -10,6 +10,7 @@ import waitForWaitingCountWithInterval from "./waitForWaitingCountWithInterval.m
 import generateFolderIfNotExisting from "./generateFolderIfNotExisting.mjs";
 import readJsonFile from "./readJsonFile.mjs";
 import sendMessageUsingWhatsapp from "./sendMessageUsingWhatsapp.mjs";
+import getMimeType from "./getMimeType.mjs";
 // import generateAcceptancePdfLetters from "./generatePdfs.mjs";
 // import generate_pdf from "./generate_pdf.mjs";
 import {
@@ -112,25 +113,56 @@ const collectConfimrdPatient = true;
     });
 
     patientsStore.on("patientAdded", async (addedPatients) => {
-      console.log("addedPatients", addedPatients);
+      console.log("addedPatients started, posting patients to WhatsApp...");
 
       // Format the message
-      const formatPatient = (p, i) =>
-        `🧾 Patient #${i + 1}:\n` +
-        `• Name: ${p.adherentName}\n` +
-        `• Nationalty: ${p.nationality}\n` +
-        `• National ID: ${p.nationalId}\n` +
-        `• Referral Type: ${p.referralType}\n` +
-        `• Specialty: ${p.requiredSpecialty}\n` +
-        `• Hospital: ${p.providerSourceName}\n` +
-        `• Zone: ${p.sourceZone}\n` +
-        `• Requested: ${p.requestedDate}\n` +
-        `• Referral ID: ${p.referralId}\n` +
-        `• Action: ${p.actionLinkRef}\n`;
+      const formatPatient = (
+        {
+          adherentName,
+          nationality,
+          nationalId,
+          referralType,
+          requiredSpecialty,
+          providerSourceName,
+          sourceZone,
+          requestedDate,
+          referralId,
+          files,
+        },
+        i
+      ) => {
+        const message =
+          `🧾 Patient #${i + 1}:\n` +
+          `────────────────────────────\n` +
+          `👤 Name: ${adherentName}\n` +
+          `🌐 Nationality: ${nationality}\n` +
+          `🆔 National ID: ${nationalId}\n` +
+          `🔢 Referral ID: ${referralId}\n` +
+          `🏷️ Referral Type: ${referralType}\n` +
+          `🧑‍⚕️ Specialty: ${requiredSpecialty}\n` +
+          `🏥 Provider: ${providerSourceName}\n` +
+          `📍 Zone: ${sourceZone}\n` +
+          `📅 Requested: ${requestedDate}\n`;
 
-      const fullMessage = addedPatients
-        .map(formatPatient)
-        .join("\n-------------------\n");
+        const _files = Array.isArray(files)
+          ? files.reduce((acc, { extension, fileBase64 }) => {
+              if (extension && fileBase64) {
+                const mimeType = getMimeType(extension);
+                const fileName = `document.${extension}`;
+                return [...(acc || []), { mimeType, fileBase64, fileName }];
+              }
+
+              return acc;
+            }, undefined)
+          : undefined;
+
+        return {
+          message,
+          files: _files,
+        };
+      };
+
+      const fullMessage = addedPatients.map(formatPatient);
 
       await sendMessageUsingWhatsapp(fullMessage);
     });
