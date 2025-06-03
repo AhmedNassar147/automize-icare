@@ -1,19 +1,24 @@
 /*
  *
- * Helper: `openPatientsDetailsPageAndDownloadDocuments`.
+ * Helper: `openPatientsDetailsPageAndDoAction`.
  *
  */
-import downloadDocumentsFromPopupViewer from "./downloadDocumentsFromPopupViewer.mjs";
+import collectFilesFromPopupWindow from "./collectFilesFromPopupWindow.mjs";
 import checkStopModalAndCloseIt from "./checkStopModalAndCloseIt.mjs";
 import navigateToPatientDetailsPage from "./navigateToPatientDetailsPage.mjs";
 import clickAppLogo from "./clickAppLogo.mjs";
 import sleep from "./sleep.mjs";
 import getSelectedNationalityFromDropdwon from "./getSelectedNationalityFromDropdwon.mjs";
+import openPopupDocumentsViewer from "./openPopupDocumentsViewer.mjs";
+import uploadAcceptanceLetter from "./uploadLetterFile.mjs";
 
-const openPatientsDetailsPageAndDownloadDocuments = async ({
+// actionType = "accept" | "reject";
+
+const openPatientsDetailsPageAndDoAction = async ({
   browser,
   page,
   patientsData,
+  letterFile,
 }) => {
   const results = patientsData;
   const clonedPatientData = [...patientsData];
@@ -25,21 +30,37 @@ const openPatientsDetailsPageAndDownloadDocuments = async ({
       clonedPatientData.splice(0, 1);
 
     try {
-      console.log(
-        `visit details page for patient=${adherentName} referralId=${referralId} ...`
-      );
-
       await navigateToPatientDetailsPage(page, actionLinkRef);
-
       // await checkStopModalAndCloseIt(page);
 
-      const { text } = await getSelectedNationalityFromDropdwon(page);
+      const { popupPage, canUploadAcceptanceLetter } =
+        await openPopupDocumentsViewer(browser, page);
 
-      const files = await downloadDocumentsFromPopupViewer(browser, page);
+      let files;
+
+      if (canUploadAcceptanceLetter) {
+        await uploadAcceptanceLetter(popupPage, letterFile);
+      } else {
+        files = await collectFilesFromPopupWindow(popupPage); // ✅ Collects files;
+      }
+
+      if (!popupPage.isClosed()) {
+        await popupPage.close(); // ✅ Closes the popup
+      }
 
       if (results[currentIndex]) {
-        results[currentIndex].nationality = text;
-        results[currentIndex].files = files || [];
+        const { text } = await getSelectedNationalityFromDropdwon(page);
+
+        if (text) {
+          results[currentIndex].nationality = text;
+        }
+
+        if (files) {
+          results[currentIndex].files = files || [];
+        }
+      }
+
+      if (isAcceptType) {
       }
 
       console.log(
@@ -60,4 +81,4 @@ const openPatientsDetailsPageAndDownloadDocuments = async ({
   return results;
 };
 
-export default openPatientsDetailsPageAndDownloadDocuments;
+export default openPatientsDetailsPageAndDoAction;

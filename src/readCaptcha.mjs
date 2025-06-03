@@ -1,48 +1,42 @@
-/*
- *
- * Helper: `readCaptcha`.
- *
- */
-import Tesseract from "tesseract.js";
+import { OpenAI } from "openai";
 import path from "path";
-import sharp from "sharp";
+import { readFile } from "fs/promises";
 
-const readCaptcha = async (imageNameWithExtension) => {
-  const imagePath = path.resolve(
+// 1. Init OpenAI
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+// 2. Read base64 file
+const run = async () => {
+  const filePath = path.resolve(
     process.cwd(),
-    "test-captcha",
-    imageNameWithExtension
+    "./test-captcha/image-test1.jpeg"
   );
 
-  const [imageName, extension] = imageNameWithExtension.split(".");
+  const imageBuffer = await readFile(filePath);
+  const base64Image = imageBuffer.toString("base64");
 
-  const preprocessedPath = path.resolve(
-    process.cwd(),
-    "test-captcha",
-    `${imageName}-preprocessed.${extension}`
-  );
+  // 4. Ask GPT about it
+  const chatCompletion = await openai.chat.completions.create({
+    model: "gpt-4o", // 👈 new model
+    messages: [
+      {
+        role: "user",
+        content: [
+          { type: "text", text: "What's the text in this CAPTCHA image?" },
+          {
+            type: "image_url",
+            image_url: {
+              url: `data:image/jpeg;base64,${base64Image}`,
+            },
+          },
+        ],
+      },
+    ],
+  });
 
-  // Step 1: Preprocess image
-  await sharp(imagePath)
-    .resize({ width: 300 }) // Upscale to improve OCR
-    .grayscale()
-    .modulate({ brightness: 1.2, saturation: 0 }) // More contrast
-    .threshold(140)
-    .toFile(preprocessedPath);
-
-  try {
-    const result = await Tesseract.recognize(preprocessedPath, "eng", {
-      logger: (m) => console.log(m), // Optional: logs progress
-      tessedit_char_whitelist:
-        "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-    });
-
-    console.log("result", result);
-  } catch (error) {
-    console.log("error", error);
-  }
+  console.log("🧠 GPT says:", chatCompletion);
 };
 
-export default readCaptcha;
-
-await readCaptcha("image-test5.jpeg");
+run().catch(console.error);

@@ -6,9 +6,15 @@
 import os from "os";
 import pLimit from "p-limit";
 import generateAcceptanceLetterHtml from "./generateAcceptanceLetterHtml.mjs";
-import { patientsGeneratedPdfsFolderDirectory } from "./constants.mjs";
+import { generatedPdfsPath, USER_ACTION_TYPES } from "./constants.mjs";
 
-const generateAcceptancePdfLetters = async (browser, patientsArray) => {
+const { ACCEPT, REJECT } = USER_ACTION_TYPES;
+
+const generateAcceptancePdfLetters = async (
+  browser,
+  patientsArray,
+  isAcceptance
+) => {
   const cpuCount = os.cpus().length; // Get the number of CPU cores
 
   const limit = pLimit(Math.min(4, cpuCount)); // Max 3 concurrent tabs
@@ -23,8 +29,10 @@ const generateAcceptancePdfLetters = async (browser, patientsArray) => {
 
       const { referralId } = patient;
 
+      const fielName = `${isAcceptance ? ACCEPT : REJECT}-${referralId}`;
+
       await page.pdf({
-        path: `${patientsGeneratedPdfsFolderDirectory}/${referralId}.pdf`,
+        path: `${generatedPdfsPath}/${fielName}.pdf`,
         format: "A4",
         // Avoid printBackground: true unless absolutely necessary — it increases size significantly
         printBackground: false,

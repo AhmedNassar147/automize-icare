@@ -4,41 +4,46 @@
  *
  */
 const openPopupDocumentsViewer = async (browser, page) => {
-  console.log("🔎 Trying to find 'View documents' and click it...");
+  console.log("🔎 Trying to find 'View / Link documents' and click it...");
 
-  // Click the "View documents" and wait for popup
-  const [popupPage] = await Promise.all([
-    new Promise((resolve) =>
-      browser.once("targetcreated", (target) => resolve(target.page()))
-    ),
+  const [popupPage, canUploadAcceptanceLetter] = await Promise.all([
+    new Promise((resolve) => {
+      browser.once("targetcreated", async (target) => {
+        const page = await target.page();
 
-    page.evaluate(() => {
-      const link = Array.from(document.querySelectorAll("#dvTitle a")).find(
-        (a) => {
-          const content = a.textContent || "";
+        if (!page) return; // Safety
 
-          return (
-            content.includes("View documents") ||
-            content.includes("Link documents")
-          );
+        if (page) {
+          await page.bringToFront();
+          resolve(page);
         }
+      });
+    }),
+    page.evaluate(() => {
+      const link = document.querySelector(
+        '#dvTitle a[onclick^="window.open(Webpath"]'
       );
       if (link) {
-        link.click();
+        const content = link.textContent || "";
+
+        const canViewOnly = content.includes("View documents");
+        const canUploadAcceptanceLetter = content.includes("Link documents");
+
+        if (canViewOnly || canUploadAcceptanceLetter) {
+          link.click();
+        }
+
+        return canUploadAcceptanceLetter;
       }
+
+      return false; // Explicit fallback if no link is found
     }),
   ]);
 
-  await popupPage.bringToFront();
-  await popupPage.waitForSelector('a[href*="OpenAttach.cfm"]');
-
-  // Get base URL of popup (e.g., https://purchasingprogramsaudi.com/some/path/)
-  const baseUrl = await popupPage.evaluate(
-    () =>
-      window.location.origin + window.location.pathname.replace(/[^/]+$/, "")
-  );
-
-  return [popupPage, baseUrl];
+  return {
+    popupPage,
+    canUploadAcceptanceLetter,
+  };
 };
 
 export default openPopupDocumentsViewer;

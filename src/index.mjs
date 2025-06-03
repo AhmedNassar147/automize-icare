@@ -3,22 +3,25 @@
  * Index
  *
  */
-// import fs from "fs";
 import puppeteer from "puppeteer";
+import makeUserLoggedInOrOpenHomePage from "./makeUserLoggedInOrOpenHomePage.mjs";
 import PatientStore from "./PatientStore.mjs";
 import waitForWaitingCountWithInterval from "./waitForWaitingCountWithInterval.mjs";
 import generateFolderIfNotExisting from "./generateFolderIfNotExisting.mjs";
 import readJsonFile from "./readJsonFile.mjs";
-import sendMessageUsingWhatsapp from "./sendMessageUsingWhatsapp.mjs";
-import getMimeType from "./getMimeType.mjs";
-// import generateAcceptancePdfLetters from "./generatePdfs.mjs";
-// import generate_pdf from "./generate_pdf.mjs";
+import sendMessageUsingWhatsapp, {
+  shutdownAllClients,
+} from "./sendMessageUsingWhatsapp.mjs";
+import processCollectingPatients from "./process/processCollectingPatients.mjs";
+import processSendCollectedPatientsToWhatsapp from "./process/processSendCollectedPatientsToWhatsapp.mjs";
+import processPatientAcceptanceOrRejection from "./process/processPatientAcceptanceOrRejection.mjs";
 import {
   waitingPatientsFolderDirectory,
-  patientsGeneratedPdfsFolderDirectory,
+  generatedPdfsPath,
   configFilePath,
+  COLLECTD_PATIENTS_FULL_FILE_PATH,
+  USER_ACTION_TYPES,
 } from "./constants.mjs";
-import findWaitingPatientsAndGetTheirDetails from "./findWaitingPatientsAndGetTheirDetails.mjs";
 
 // install gs from https://ghostscript.com/releases/gsdnld.html
 
@@ -26,21 +29,33 @@ import findWaitingPatientsAndGetTheirDetails from "./findWaitingPatientsAndGetTh
 // 4- suppose cancel request
 // ----------------------------------------
 
+// python
+// https://www.python.org/downloads/
+// py --version
+// py -m pip --version
+
+// install
+// py -m pip install paddlepaddle -f https://www.paddlepaddle.org.cn/whl/windows/mkl/avx/stable.html
+// py -m pip install paddleocr
+
+// inside captcha_recognize
+// python -m venv venv
+// Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+// PS D:\work\future\clone-icare\icare-automize\captcha_recognize> venv\Scripts\Activate.ps1
+// pip install pillow numpy tensorflow
+
 const collectConfimrdPatient = true;
 
 (async () => {
   try {
-    // await generate_pdf()
-    //   .then((pdfBytes) => {
-    //     fs.writeFileSync(`${process.cwd()}/results/referral.pdf`, pdfBytes);
-    //     console.log("PDF generated successfully!");
-    //   })
-    //   .catch((error) => console.log(error));
-    // return;
-
     await generateFolderIfNotExisting(waitingPatientsFolderDirectory);
-    await generateFolderIfNotExisting(patientsGeneratedPdfsFolderDirectory);
-    const { userName, password } = await readJsonFile(configFilePath, true);
+    await generateFolderIfNotExisting(generatedPdfsPath);
+
+    // 966569157706
+    const { whatsappNumber, password, userName } = await readJsonFile(
+      configFilePath,
+      true
+    );
 
     const browser = await puppeteer.launch({
       headless: false,
@@ -48,36 +63,24 @@ const collectConfimrdPatient = true;
       args: ["--start-maximized"], // Maximize window on launch
     });
 
-    const page = await browser.newPage();
-
-    // 1. Go to login page
-    await page.goto("https://purchasingprogramsaudi.com/Index.cfm", {
-      waitUntil: "networkidle2",
+    const [page, isLoggedIn] = await makeUserLoggedInOrOpenHomePage({
+      browser,
+      password,
+      userName,
     });
 
-    await page.type("#j_username", userName);
-    await page.type("#j_password", password);
-
-    // Step 1: Wait for user to log in manually
-    console.log("🕒 Waiting for user to log in...");
-
-    // Step 2: Wait until a selector only present after login appears
-    const homePageSelector = await page.waitForSelector(
-      "#icare_global_header_menu",
-      {
-        timeout: 9 * 60 * 1000, // wait max 9 minutes
-      }
-    );
-
-    if (!homePageSelector) {
-      console.log("✅ User did not log in!");
-      return;
+    if (!isLoggedIn) {
+      await browser.close();
+      console.error("🛑 Failed to login to icare app. Exiting...");
+      return process.exit(1);
     }
 
-    console.log("✅ User Logged in successfully!");
+    const collectedPatients = await readJsonFile(
+      COLLECTD_PATIENTS_FULL_FILE_PATH,
+      true
+    );
 
-    console.log("✅ initializing PatientStore!");
-    const patientsStore = new PatientStore();
+    const patientsStore = new PatientStore(collectedPatients || []);
 
     (async () =>
       await waitForWaitingCountWithInterval({
@@ -86,83 +89,66 @@ const collectConfimrdPatient = true;
         patientsStore,
       }))();
 
-    patientsStore.on("startCollectingPatients", async () => {
-      console.log("startCollectingPatients starts");
+    const sendWhatsappMessage = sendMessageUsingWhatsapp(patientsStore);
 
-      const newPage = await browser.newPage();
-
-      try {
-        await newPage.goto("https://purchasingprogramsaudi.com/Index.cfm", {
-          waitUntil: "networkidle2",
-        });
-
-        const result = await findWaitingPatientsAndGetTheirDetails({
+    patientsStore.on(
+      "collectPatients",
+      async () =>
+        await processCollectingPatients({
           browser,
-          page: newPage,
           collectConfimrdPatient,
-        });
+          password,
+          patientsStore,
+          userName,
+        })
+    );
 
-        patientsStore.addPatients(result);
-      } catch (err) {
-        // patientsStore.emit("collectionError", err);
-        console.log("Error:", err);
-      } finally {
-        await newPage.close();
-        patientsStore.finishCollecting(); // allow next collection
-      }
-    });
+    patientsStore.on(
+      "patientsAdded",
+      processSendCollectedPatientsToWhatsapp(
+        sendWhatsappMessage,
+        whatsappNumber
+      )
+    );
 
-    patientsStore.on("patientAdded", async (addedPatients) => {
-      console.log("addedPatients started, posting patients to WhatsApp...");
+    patientsStore.on("patientAccepted", async (patient) =>
+      processPatientAcceptanceOrRejection({
+        browser,
+        password,
+        userName,
+        actionType: USER_ACTION_TYPES.ACCEPT,
+        patient,
+        patientsStore,
+        sendWhatsappMessage,
+        whatsappNumber,
+      })
+    );
 
-      // Format the message
-      const formatPatient = (
-        {
-          adherentName,
-          nationality,
-          nationalId,
-          referralType,
-          requiredSpecialty,
-          providerSourceName,
-          sourceZone,
-          requestedDate,
-          referralId,
-          files,
-        },
-        i
-      ) => {
-        const message =
-          `🧾 Patient #${i + 1}:\n` +
-          `────────────────────────────\n` +
-          `👤 Name: ${adherentName}\n` +
-          `🌐 Nationality: ${nationality}\n` +
-          `🆔 National ID: ${nationalId}\n` +
-          `🔢 Referral ID: ${referralId}\n` +
-          `🏷️ Referral Type: ${referralType}\n` +
-          `🧑‍⚕️ Specialty: ${requiredSpecialty}\n` +
-          `🏥 Provider: ${providerSourceName}\n` +
-          `📍 Zone: ${sourceZone}\n` +
-          `📅 Requested: ${requestedDate}\n`;
-
-        return {
-          message,
-          files: files,
-        };
-      };
-
-      const messages = addedPatients.map(formatPatient);
-
-      await sendMessageUsingWhatsapp(messages);
-    });
-
-    // when clicking the accept input button
-    //  page.click('#accept')
+    patientsStore.on("patientRejected", async (patient) =>
+      processPatientAcceptanceOrRejection({
+        browser,
+        password,
+        userName,
+        actionType: USER_ACTION_TYPES.REJECT,
+        patient,
+        patientsStore,
+        sendWhatsappMessage,
+        whatsappNumber,
+      })
+    );
   } catch (error) {
     console.error("❌ An error occurred:", error.message);
     console.error("Stack trace:", error.stack);
+    await shutdownAllClients();
   }
 })();
 
+// post to query table data
+// https://purchasingprogramsaudi.com/cfc/get_notif_moh.cfm
+
+{
+  /* <div id="dvError" style="color:#006 !important;font-weight:bold;font-size:14px;">You still have to wait for 12 minutes to be able to take any action.Kindly refresh the page.</div> */
+}
 // timer
 // //<div id="submit_div" style="float:left;padding-top: 30px;margin-left:300px;">
 
@@ -200,3 +186,45 @@ const collectConfimrdPatient = true;
 // ]);
 
 // return;
+
+// const patientsArray = [
+//   {
+//     referralId: "124321",
+//     ihalatiReferralId: "2030269",
+//     requestedDate: "2022-01-02 23:09:00.0",
+//     adherentId: "33101631",
+//     adherentName: "Mohamed X Al shahrany",
+//     nationalId: "1036226577",
+//     referralType: "Long Term Care",
+//     requiredSpecialty: "Extended Care",
+//     sourceZone: "Asir",
+//     providerSourceName: "Asir Central Hospital",
+//     nationality: "SAUDI",
+//   },
+//   {
+//     referralId: "127449",
+//     ihalatiReferralId: "2100526",
+//     requestedDate: "2022-02-19 07:44:00.0",
+//     adherentId: "33267273",
+//     adherentName: "Nawy X al shehry",
+//     nationalId: "1040073593",
+//     referralType: "Long Term Care",
+//     requiredSpecialty: "Extended Care",
+//     sourceZone: "Bisha",
+//     providerSourceName: "King Abdullah Hospital",
+//     nationality: "SAUDI",
+//   },
+//   {
+//     referralId: "133167",
+//     ihalatiReferralId: "30067212",
+//     requestedDate: "2022-06-12 14:38:00.0",
+//     adherentId: "34082324",
+//     adherentName: "Sultan X Alqahtani",
+//     nationalId: "1119714010",
+//     referralType: "Emergency",
+//     requiredSpecialty: "Neuro Surgery",
+//     sourceZone: "Asir",
+//     providerSourceName: "Asir Central Hospital",
+//     nationality: "SAUDI",
+//   },
+// ];

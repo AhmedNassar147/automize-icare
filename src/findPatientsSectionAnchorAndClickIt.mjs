@@ -4,7 +4,7 @@
  *
  */
 const findPatientsSectionAnchorAndClickIt = async (page, pupultaeFnText) => {
-  await page.evaluate(
+  const anchorFound = await page.evaluate(
     ({ pupultaeFnText }) => {
       const anchor = document.querySelector(
         `a[onclick^="populateNotificationsMOHTable('${pupultaeFnText}'"]`
@@ -12,13 +12,18 @@ const findPatientsSectionAnchorAndClickIt = async (page, pupultaeFnText) => {
 
       if (anchor) {
         anchor.click();
+
+        return true;
       }
+
+      return false;
     },
     { pupultaeFnText }
   );
 
   await page.waitForNetworkIdle();
-  // await sleep(150);
+
+  return anchorFound;
 };
 
 export default findPatientsSectionAnchorAndClickIt;
