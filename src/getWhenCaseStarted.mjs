@@ -3,6 +3,11 @@
  * Helper: `getWhenCaseStarted`.
  *
  */
+import {
+  STOP_USER_ACTION_MINUTES,
+  ALLOWED_MINUTES_TO_REVIEW_PATIENTS,
+} from "./constants.mjs";
+
 const MINUTES_TO_WAIT = 1;
 
 // const formatDateToYMDHM = (date) => {
@@ -43,24 +48,41 @@ const getWhenCaseStarted = async (page) => {
   if (minutes !== null) {
     const startTime = new Date(now.getTime() - minutes * 60000);
 
-    const isoFormated = startTime.toISOString();
+    const startedAt = startTime.toISOString();
+
+    const reviewMinutes = minutes - STOP_USER_ACTION_MINUTES;
 
     console.log(
-      `Countdown detected in #dvError (${minutes} mins). Started at: ${isoFormated}`
+      `Countdown detected in #dvError (${minutes} mins). Started at: ${startedAt}`
     );
 
-    return isoFormated;
+    return {
+      startedAt,
+      startedAtMessage: `You have ${reviewMinutes} minutes to review.`,
+      reviewMinutes,
+    };
   }
 
-  const startTime = new Date(now.getTime() - 15 * 60000);
+  // we subtract a 1 minutte in case some delay happens
+  const backwordMinutes = 1;
 
-  const isoFormated = startTime.toISOString();
+  const startTime = new Date(now.getTime() - backwordMinutes * 60000);
+  const startedAt = startTime.toISOString();
+
+  const reviewMinutes =
+    ALLOWED_MINUTES_TO_REVIEW_PATIENTS -
+    backwordMinutes -
+    STOP_USER_ACTION_MINUTES;
 
   console.log(
-    `No #dvError or minutes found: backword 15 minutes: ${isoFormated}`
+    `No #dvError or minutes found: backword ${backwordMinutes} minutes, Started at: ${startedAt}`
   );
 
-  return isoFormated;
+  return {
+    startedAt,
+    startedAtMessage: `You have ${reviewMinutes} minutes to review.`,
+    reviewMinutes,
+  };
 };
 
 export default getWhenCaseStarted;

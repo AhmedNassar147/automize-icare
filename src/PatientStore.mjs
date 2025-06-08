@@ -108,13 +108,12 @@ class PatientStore extends EventEmitter {
       return { success: false, message };
     }
 
-    const { startedAt } = patient; // ISO string like "2025-06-08T15:18:00.000Z"
+    const { startedAt, reviewMinutes } = patient; // ISO string like "2025-06-08T15:18:00.000Z"
     const now = Date.now(); // current time in ms since epoch (UTC)
-    const patientRequestTime = new Date(startedAt).getTime(); // ms since epoch (UTC)
+    const reviewMs = (reviewMinutes || 0) * 60000;
+    const endTime = new Date(startedAt).getTime() + reviewMs; // ms since epoch (UTC)
 
-    const elapsedTime = now - patientRequestTime; // ms elapsed since startedAt
-
-    const canProcess = elapsedTime < EFFECTIVE_REVIEW_DURATION_MS;
+    const canProcess = now <= endTime;
 
     return {
       success: canProcess,

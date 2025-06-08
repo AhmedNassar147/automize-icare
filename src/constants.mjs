@@ -33,8 +33,11 @@ export const USER_ACTION_TYPES = {
   COLLECT: "collect",
 };
 
+// the user will review patient till the 12 minute of the counter
 export const ALLOWED_MINUTES_TO_REVIEW_PATIENTS = 15;
-export const SUBTRACTED_TIME_TO_PROCESS_PATIENT_MS = 15;
+export const STOP_USER_ACTION_MINUTES = ALLOWED_MINUTES_TO_REVIEW_PATIENTS - 12;
+
+export const SUBTRACTED_TIME_TO_PROCESS_PATIENT_MS = 30;
 
 export const EFFECTIVE_REVIEW_DURATION_MS =
   ALLOWED_MINUTES_TO_REVIEW_PATIENTS * 60 * 1000 -

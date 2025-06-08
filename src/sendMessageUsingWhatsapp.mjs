@@ -195,8 +195,9 @@ const initializeClient = async (
           return;
         }
 
-        const { success, message: validationMessage } =
-          patientsStore.canStillProcessPatient(referralId);
+        const { success, message: validationMessage } = isRejection
+          ? { success: true }
+          : patientsStore.canStillProcessPatient(referralId);
 
         if (!success) {
           await message.reply(validationMessage);

@@ -41,6 +41,7 @@ const processSendCollectedPatientsToWhatsapp =
         referralId,
         files,
         startedAt,
+        startedAtMessage,
       },
       i
     ) => {
@@ -58,9 +59,9 @@ const processSendCollectedPatientsToWhatsapp =
         `📍 *Zone:* ${sourceZone}\n` +
         `📅 *Requested At:* ${requestedDate}\n` +
         `─────────────────────────────\n` +
+        `🚨 *‼️ ATTENTION ‼️*  *${startedAtMessage}*\n` +
         `*Please review And Reply on this message with:*.*\n` +
-        `${createConfirmationMessage()}` +
-        `─────────────────────────────\n`;
+        `${createConfirmationMessage()}`;
 
       return {
         message,
