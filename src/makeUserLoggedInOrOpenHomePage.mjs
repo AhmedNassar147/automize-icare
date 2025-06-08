@@ -3,11 +3,9 @@
  * Helper: `makeUserLoggedInOrOpenHomePage`.
  *
  */
-const makeUserLoggedInOrOpenHomePage = async ({
-  browser,
-  userName,
-  password,
-}) => {
+const makeUserLoggedInOrOpenHomePage = async (browser) => {
+  const userName = process.env.CLIENT_NAME;
+
   const page = await browser.newPage();
 
   try {
@@ -23,7 +21,7 @@ const makeUserLoggedInOrOpenHomePage = async ({
 
     if (isLoginPage) {
       await page.type("#j_username", userName);
-      await page.type("#j_password", password);
+      await page.type("#j_password", process.env.CLIENT_PASSWORD);
 
       await Promise.all([
         page.waitForNavigation({

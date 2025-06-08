@@ -3,22 +3,24 @@
  * Helper: `validateReplyText`.
  *
  */
+import { CONFIRMATION_TYPES } from "./constants.mjs";
+
 const validateReplyText = (text) => {
   const lower = (text || "").toLowerCase().trim();
 
-  if (["accept", "1"].includes(lower)) {
+  if (CONFIRMATION_TYPES.ACCEPT.includes(lower)) {
     return {
       isAcceptance: true,
     };
   }
 
-  if (["cancel", "0"].includes(lower)) {
+  if (CONFIRMATION_TYPES.CANCEL.includes(lower)) {
     return {
       isCancellation: true,
     };
   }
 
-  if (["reject", "00"].includes(lower)) {
+  if (CONFIRMATION_TYPES.REJECT.includes(lower)) {
     return {
       isRejection: true,
     };

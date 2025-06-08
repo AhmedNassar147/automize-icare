@@ -3,36 +3,20 @@
  * Helper: `processCollectingPatients`.
  *
  */
-import makeUserLoggedInOrOpenHomePage from "../makeUserLoggedInOrOpenHomePage.mjs";
 import findPatientsSectionAnchorAndClickIt from "../findPatientsSectionAnchorAndClickIt.mjs";
 import extractWaitingReferalTableData from "../extractWaitingReferalTableData.mjs";
 import openDetailsPageAndDoUserAction from "../openDetailsPageAndDoUserAction.mjs";
 import generateAcceptancePdfLetters from "../generatePdfs.mjs";
+import clickAppLogo from "../clickAppLogo.mjs";
 import { PATIENT_SECTIONS_STATUS, USER_ACTION_TYPES } from "../constants.mjs";
 
 const processCollectingPatients = async ({
   browser,
-  password,
-  userName,
   patientsStore,
   collectConfimrdPatient,
+  page,
 }) => {
   console.log("✅ start Collecting Patients...");
-
-  const [page, isLoggedIn] = await makeUserLoggedInOrOpenHomePage({
-    browser,
-    password,
-    userName,
-  });
-
-  if (!isLoggedIn) {
-    await browser.close();
-    console.error(
-      "🛑 Can't collect patients, Failed to login to icare app. Exiting..."
-    );
-    return process.exit(1);
-  }
-
   try {
     const { pupultaeFnText } =
       PATIENT_SECTIONS_STATUS[collectConfimrdPatient ? "CONFIRMED" : "WAITING"];
@@ -48,40 +32,75 @@ const processCollectingPatients = async ({
 
     const patientsData = await extractWaitingReferalTableData(page);
 
-    console.time("openPatientsDetailsPageAndDoAction");
+    if (!patientsData || !patientsData.length) {
+      console.log(
+        "✅ Could not find Patients in table, Cancelling Collecting Patients..."
+      );
+      return;
+    }
 
-    const patientsLength = patientsData.length;
+    const filteredPatientsData = patientsData.filter(({ referralId }) => {
+      const { patient: foundPatient } =
+        patientsStore.findPatientByReferralId(referralId);
+      return !foundPatient && !!referralId;
+    });
+
+    if (!filteredPatientsData || !filteredPatientsData.length) {
+      console.log(
+        "✅ No New Patients Found, Cancelling Collecting Patients..."
+      );
+      return;
+    }
+
+    console.time("collecting patient data from details page");
+
+    const patientsLength = filteredPatientsData.length;
     const lastPatientIndex = patientsLength - 1;
 
     const results = [];
     let currentIndex = 0;
 
     while (currentIndex <= lastPatientIndex) {
-      const patient = patientsData[currentIndex];
+      const patient = filteredPatientsData[currentIndex];
 
-      const collectedPatientData = await openDetailsPageAndDoUserAction({
+      const { patientDetails } = await openDetailsPageAndDoUserAction({
         actionType: USER_ACTION_TYPES.COLLECT,
         browser,
         page,
         patient,
       });
 
-      results[currentIndex] = collectedPatientData;
+      results[currentIndex] = patientDetails;
 
       currentIndex++;
     }
 
     patientsStore.addPatients(results);
-    console.timeEnd("openPatientsDetailsPageAndDoAction");
-    await Promise.all([
-      generateAcceptancePdfLetters(browser, patientsData, true),
-      generateAcceptancePdfLetters(browser, patientsData),
-    ]);
+    console.timeEnd("collecting patient data from details page");
+
+    // we do this so the generation done in background
+    // and we don't to block the next count search
+    (async () => {
+      try {
+        await Promise.all([
+          generateAcceptancePdfLetters(browser, filteredPatientsData, true),
+          generateAcceptancePdfLetters(browser, filteredPatientsData),
+        ]);
+      } catch (error) {
+        console.log("🛑 Error when generating patient Letters:", error);
+      }
+    })();
   } catch (err) {
     console.log("🛑 Error when collecting patients:", err);
   } finally {
-    patientsStore.finishCollecting(); // allow next collection
-    await page.close();
+    try {
+      await clickAppLogo(page);
+    } catch (error) {
+      console.log(
+        "🛑 Error when clicking app logo when collecting patients:",
+        error
+      );
+    }
   }
 };
 

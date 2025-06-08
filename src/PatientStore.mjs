@@ -6,7 +6,6 @@
 import EventEmitter from "events";
 import writePatientData from "./writePatientData.mjs";
 import waitMinutesThenRun from "./waitMinutesThenRun.mjs";
-import convertDateToISO from "./convertDateToISO.mjs";
 import {
   COLLECTD_PATIENTS_FILE_NAME,
   EFFECTIVE_REVIEW_DURATION_MS,
@@ -21,8 +20,6 @@ class PatientStore extends EventEmitter {
     this.goingPatientsToBeAccepted = new Set();
     this.goingPatientsToBeRejected = new Set();
     this.patientTimers = new Map();
-    this._isCollecting = false;
-    this.shouldAutoCollect = false;
 
     for (const patient of initialPatients) {
       if (patient) {
@@ -56,25 +53,8 @@ class PatientStore extends EventEmitter {
 
     if (added.length > 0) {
       const allPatients = this.getAllPatients();
-      this.emit("patientsAdded", added, allPatients);
+      this.emit("patientsAdded", added);
       await writePatientData(allPatients, COLLECTD_PATIENTS_FILE_NAME);
-    }
-  }
-
-  startCollectingPatients() {
-    if (this._isCollecting) {
-      this.shouldAutoCollect = true;
-      return;
-    }
-    this._isCollecting = true;
-    this.emit("collectPatients");
-  }
-
-  finishCollecting() {
-    this._isCollecting = false;
-    if (this.shouldAutoCollect) {
-      this.shouldAutoCollect = false;
-      this.startCollectingPatients();
     }
   }
 
@@ -83,20 +63,59 @@ class PatientStore extends EventEmitter {
     return { patient, message: patient ? undefined : USER_MESSAGES.notFound };
   }
 
+  async removePatientByReferralId(referralId) {
+    const patient = this.patientsById.get(referralId);
+    if (!patient) {
+      console.log(
+        `🛑 Patient with referralId=${referralId} Not Found to be removed`
+      );
+
+      return { success: false, message: USER_MESSAGES.notFound };
+    }
+
+    // Remove from patientsById map
+    this.patientsById.delete(referralId);
+
+    // Remove patient object from patients set
+    this.patients.delete(patient);
+
+    // Remove from acceptance/rejection sets
+    this.goingPatientsToBeAccepted.delete(referralId);
+    this.goingPatientsToBeRejected.delete(referralId);
+
+    // Cancel and remove any timers
+    const timer = this.patientTimers.get(referralId);
+    if (timer) {
+      timer.cancel();
+      this.patientTimers.delete(referralId);
+    }
+
+    const allPatients = this.getAllPatients();
+
+    await writePatientData(allPatients, COLLECTD_PATIENTS_FILE_NAME);
+
+    console.log("✅ Patient with referralId=${referralId} just removed:");
+
+    return {
+      success: true,
+      message: "Patient removed",
+    };
+  }
+
   canStillProcessPatient(referralId) {
     const { patient, message } = this.findPatientByReferralId(referralId);
     if (message) {
       return { success: false, message };
     }
 
-    const { requestedDate } = patient;
-    const now = Date.now();
-    const patientRequestTime = new Date(
-      convertDateToISO(requestedDate)
-    ).getTime();
-    const elapsedTime = now - patientRequestTime;
+    const { startedAt } = patient; // ISO string like "2025-06-08T15:18:00.000Z"
+    const now = Date.now(); // current time in ms since epoch (UTC)
+    const patientRequestTime = new Date(startedAt).getTime(); // ms since epoch (UTC)
+
+    const elapsedTime = now - patientRequestTime; // ms elapsed since startedAt
 
     const canProcess = elapsedTime < EFFECTIVE_REVIEW_DURATION_MS;
+
     return {
       success: canProcess,
       message: canProcess ? USER_MESSAGES.canProcess : USER_MESSAGES.expired,
@@ -104,9 +123,9 @@ class PatientStore extends EventEmitter {
   }
 
   schedulePatientAction(actionSet, eventName, patient) {
-    const { referralId, requestedDate } = patient;
+    const { referralId, startedAt } = patient;
 
-    const timer = waitMinutesThenRun(requestedDate, () => {
+    const timer = waitMinutesThenRun(startedAt, () => {
       actionSet.delete(referralId);
       this.patientTimers.delete(referralId);
       this.emit(eventName, patient);

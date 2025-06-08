@@ -3,6 +3,9 @@
  * Index
  *
  */
+import dotenv from "dotenv";
+dotenv.config();
+
 import puppeteer from "puppeteer";
 import makeUserLoggedInOrOpenHomePage from "./makeUserLoggedInOrOpenHomePage.mjs";
 import PatientStore from "./PatientStore.mjs";
@@ -12,16 +15,89 @@ import readJsonFile from "./readJsonFile.mjs";
 import sendMessageUsingWhatsapp, {
   shutdownAllClients,
 } from "./sendMessageUsingWhatsapp.mjs";
-import processCollectingPatients from "./process/processCollectingPatients.mjs";
 import processSendCollectedPatientsToWhatsapp from "./process/processSendCollectedPatientsToWhatsapp.mjs";
 import processPatientAcceptanceOrRejection from "./process/processPatientAcceptanceOrRejection.mjs";
 import {
   waitingPatientsFolderDirectory,
   generatedPdfsPath,
-  configFilePath,
   COLLECTD_PATIENTS_FULL_FILE_PATH,
   USER_ACTION_TYPES,
+  receivedRejectedCaptchasPath,
+  receivedResolvedCaptchasPath,
 } from "./constants.mjs";
+
+const collectConfimrdPatient = true;
+
+(async () => {
+  try {
+    await Promise.all([
+      generateFolderIfNotExisting(waitingPatientsFolderDirectory),
+      generateFolderIfNotExisting(generatedPdfsPath),
+      generateFolderIfNotExisting(receivedResolvedCaptchasPath),
+      generateFolderIfNotExisting(receivedRejectedCaptchasPath),
+    ]);
+
+    const browser = await puppeteer.launch({
+      headless: false,
+      defaultViewport: null, // Allow full window resizing
+      args: ["--start-maximized"], // Maximize window on launch
+    });
+
+    const [page, isLoggedIn] = await makeUserLoggedInOrOpenHomePage(browser);
+
+    if (!isLoggedIn) {
+      await browser.close();
+      console.error("🛑 Failed to login to icare app. Exiting...");
+      return process.exit(1);
+    }
+
+    const collectedPatients = await readJsonFile(
+      COLLECTD_PATIENTS_FULL_FILE_PATH,
+      true
+    );
+
+    const patientsStore = new PatientStore(collectedPatients || []);
+
+    (async () =>
+      await waitForWaitingCountWithInterval({
+        page,
+        collectConfimrdPatient,
+        browser,
+        patientsStore,
+      }))();
+
+    const sendWhatsappMessage = sendMessageUsingWhatsapp(patientsStore);
+
+    patientsStore.on(
+      "patientsAdded",
+      processSendCollectedPatientsToWhatsapp(sendWhatsappMessage)
+    );
+
+    patientsStore.on("patientAccepted", async (patient) =>
+      processPatientAcceptanceOrRejection({
+        browser,
+        actionType: USER_ACTION_TYPES.ACCEPT,
+        patient,
+        patientsStore,
+        sendWhatsappMessage,
+      })
+    );
+
+    patientsStore.on("patientRejected", async (patient) =>
+      processPatientAcceptanceOrRejection({
+        browser,
+        actionType: USER_ACTION_TYPES.REJECT,
+        patient,
+        patientsStore,
+        sendWhatsappMessage,
+      })
+    );
+  } catch (error) {
+    console.error("❌ An error occurred:", error.message);
+    console.error("Stack trace:", error.stack);
+    await shutdownAllClients();
+  }
+})();
 
 // install gs from https://ghostscript.com/releases/gsdnld.html
 
@@ -42,106 +118,6 @@ import {
 // python -m venv venv
 // Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 // PS D:\work\future\clone-icare\icare-automize\captcha_recognize> venv\Scripts\Activate.ps1
-// pip install pillow numpy tensorflow
-
-const collectConfimrdPatient = true;
-
-(async () => {
-  try {
-    await generateFolderIfNotExisting(waitingPatientsFolderDirectory);
-    await generateFolderIfNotExisting(generatedPdfsPath);
-
-    // 966569157706
-    const { whatsappNumber, password, userName } = await readJsonFile(
-      configFilePath,
-      true
-    );
-
-    const browser = await puppeteer.launch({
-      headless: false,
-      defaultViewport: null, // Allow full window resizing
-      args: ["--start-maximized"], // Maximize window on launch
-    });
-
-    const [page, isLoggedIn] = await makeUserLoggedInOrOpenHomePage({
-      browser,
-      password,
-      userName,
-    });
-
-    if (!isLoggedIn) {
-      await browser.close();
-      console.error("🛑 Failed to login to icare app. Exiting...");
-      return process.exit(1);
-    }
-
-    const collectedPatients = await readJsonFile(
-      COLLECTD_PATIENTS_FULL_FILE_PATH,
-      true
-    );
-
-    const patientsStore = new PatientStore(collectedPatients || []);
-
-    (async () =>
-      await waitForWaitingCountWithInterval({
-        page,
-        collectConfimrdPatient,
-        patientsStore,
-      }))();
-
-    const sendWhatsappMessage = sendMessageUsingWhatsapp(patientsStore);
-
-    patientsStore.on(
-      "collectPatients",
-      async () =>
-        await processCollectingPatients({
-          browser,
-          collectConfimrdPatient,
-          password,
-          patientsStore,
-          userName,
-        })
-    );
-
-    patientsStore.on(
-      "patientsAdded",
-      processSendCollectedPatientsToWhatsapp(
-        sendWhatsappMessage,
-        whatsappNumber
-      )
-    );
-
-    patientsStore.on("patientAccepted", async (patient) =>
-      processPatientAcceptanceOrRejection({
-        browser,
-        password,
-        userName,
-        actionType: USER_ACTION_TYPES.ACCEPT,
-        patient,
-        patientsStore,
-        sendWhatsappMessage,
-        whatsappNumber,
-      })
-    );
-
-    patientsStore.on("patientRejected", async (patient) =>
-      processPatientAcceptanceOrRejection({
-        browser,
-        password,
-        userName,
-        actionType: USER_ACTION_TYPES.REJECT,
-        patient,
-        patientsStore,
-        sendWhatsappMessage,
-        whatsappNumber,
-      })
-    );
-  } catch (error) {
-    console.error("❌ An error occurred:", error.message);
-    console.error("Stack trace:", error.stack);
-    await shutdownAllClients();
-  }
-})();
 
 // post to query table data
 // https://purchasingprogramsaudi.com/cfc/get_notif_moh.cfm
@@ -156,36 +132,9 @@ const collectConfimrdPatient = true;
 
 // </div>
 
+// https://purchasingprogramsaudi.com/CFFileServlet/_cf_captcha/_captcha_img-6657639295369885109.png
+
 // https://purchasingprogramsaudi.com/OpenAttach.cfm?fileName=MH2-H50982_9518690_3_0.560148522034.pdf&Ext=pdf
-
-// await generateAcceptancePdfLetters(browser, [
-//   {
-//     referralId: "124321",
-//     ihalatiReferralId: "2030269",
-//     requestedDate: "2022-01-02 23:09:00.0",
-//     adherentId: "33101631",
-//     adherentName: "Mohamed X Al shahrany",
-//     nationalId: "1036226577",
-//     referralType: "Long Term Care",
-//     requiredSpecialty: "Extended Care",
-//     sourceZone: "Asir",
-//     providerSourceName: "Asir Central Hospital",
-//   },
-//   {
-//     referralId: "127449",
-//     ihalatiReferralId: "2100526",
-//     requestedDate: "2022-02-19 07:44:00.0",
-//     adherentId: "33267273",
-//     adherentName: "Nawy X al shehry",
-//     nationalId: "1040073593",
-//     referralType: "Long Term Care",
-//     requiredSpecialty: "Extended Care",
-//     sourceZone: "Bisha",
-//     providerSourceName: "King Abdullah Hospital",
-//   },
-// ]);
-
-// return;
 
 // const patientsArray = [
 //   {
@@ -228,3 +177,60 @@ const collectConfimrdPatient = true;
 //     nationality: "SAUDI",
 //   },
 // ];
+
+// https://purchasingprogramsaudi.com/common/captcha_reject.cfm
+// paylaod: captchaText=iqnsjsm5&referral_id=294841&RejReason=3783&submit=Validate&_cf_containerId=WorkArea&_cf_nodebug=true&_cf_nocache=true&_cf_clientid=7C5FED3316991F638B281A3AAFFFCF2B
+{
+  /*
+
+	<link rel="stylesheet" href="https://purchasingprogramsaudi.com:443/css/mm_health_nutr.css" type="text/css" />
+
+      <script>
+		JQueryAlert("You did not enter the right text.You cannot proceed!");
+	</script>
+
+
+
+
+
+
+<div id="captcha_div" style="float:left;text-align:left;">
+
+		<form name="CAPTCHAfrm" id="CAPTCHAfrm" action="../common/captcha_reject.cfm" method="post" onsubmit="return ColdFusion.Ajax.checkForm(this, _CF_checkCAPTCHAfrm,'WorkArea')">
+
+
+
+
+		    <div style="float:left;width:100%;margin:5px;">
+
+				<img src="/CFFileServlet/_cf_captcha/_captcha_img-7838586407990719196.png" alt="" height="80" width="250" />
+
+
+            </div>
+
+			<div style="float:left;width:100%;margin:5px;">
+
+            <span style="font-weight:bold;color:#808285;width:170px;font-size:12px;text-align:left;">
+				Enter Text :
+			</span>
+			<span>
+			<input
+				type="text"
+				name="captchaText"
+				id="captchaText"
+				value="" style="width:180px;"
+				/> </span>
+                <input type="hidden" id="referral_id" name="referral_id" value="294841" />
+                <input type="hidden" id="RejReason" name="RejReason" value="3783" />
+               	<input name="submit" id="submit"  type="submit" value="Validate" />
+            </div>
+
+
+
+    </div>
+	</form> */
+}
+// after captch submit modal You did not enter the right text.You cannot proceed!
+
+// if success it requests
+// https://purchasingprogramsaudi.com/Assistance/MohDashboard.cfm?_cf_containerId=WorkArea&_cf_nodebug=true&_cf_nocache=true&_cf_clientid=7C5FED3316991F638B281A3AAFFFCF2B&_cf_rc=2

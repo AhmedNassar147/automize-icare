@@ -5,7 +5,7 @@
  */
 import clickAppLogo from "./clickAppLogo.mjs";
 import sleep from "./sleep.mjs";
-import findPatientsSectionAnchorAndClickIt from "./findPatientsSectionAnchorAndClickIt.mjs";
+import processCollectingPatients from "./process/processCollectingPatients.mjs";
 import { PATIENT_SECTIONS_STATUS } from "./constants.mjs";
 
 const waitForWaitingCountWithInterval = async (options) => {
@@ -13,13 +13,15 @@ const waitForWaitingCountWithInterval = async (options) => {
     page,
     collectConfimrdPatient = false,
     patientsStore,
-    sleepMs = 0.5 * 60 * 1000,
+    sleepMs = 0.75 * 60 * 1000,
+    browser,
   } = options;
 
-  const { countFieldSelector, pupultaeFnText, foundCountText, noCountText } =
+  console.log(`🧐 Searching for next patients...`);
+
+  const { countFieldSelector, foundCountText, noCountText } =
     PATIENT_SECTIONS_STATUS[collectConfimrdPatient ? "CONFIRMED" : "WAITING"];
 
-  await page.waitForNetworkIdle();
   await page.waitForSelector(`#${countFieldSelector}`);
 
   const waitingCount = await page.evaluate(
@@ -33,11 +35,15 @@ const waitForWaitingCountWithInterval = async (options) => {
   if (waitingCount > 0) {
     console.log(`🔔 There are ${waitingCount} ${foundCountText}.`);
 
-    await findPatientsSectionAnchorAndClickIt(page, pupultaeFnText);
+    await processCollectingPatients({
+      browser,
+      patientsStore,
+      collectConfimrdPatient,
+      page,
+    });
 
-    await patientsStore.startCollectingPatients();
-    console.log(`re-searching fro next count...`);
     await sleep(sleepMs);
+
     await waitForWaitingCountWithInterval(options);
   } else {
     console.log(`${noCountText}, refreshing...`);

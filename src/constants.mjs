@@ -7,7 +7,8 @@ export const cwd = process.cwd();
 
 export const waitingPatientsFolderDirectory = `${cwd}/results/waiting-patients`;
 export const generatedPdfsPath = `${cwd}/results/patients-generated-pdfs`;
-export const configFilePath = `${cwd}/config.json`;
+export const receivedResolvedCaptchasPath = `${cwd}/results/resolved-captchas`;
+export const receivedRejectedCaptchasPath = `${cwd}/results/rejected-captchas`;
 export const COLLECTD_PATIENTS_FILE_NAME = "collectedPatients";
 export const COLLECTD_PATIENTS_FULL_FILE_PATH = `${waitingPatientsFolderDirectory}/${COLLECTD_PATIENTS_FILE_NAME}.json`;
 
@@ -49,4 +50,10 @@ export const USER_MESSAGES = {
   canProcess: "Patient can still be processed.",
   cancelSuccess: "Scheduled action canceled successfully.",
   noAction: "No-need, No scheduled action to cancel for this patient.",
+};
+
+export const CONFIRMATION_TYPES = {
+  ACCEPT: ["accept", "1"],
+  REJECT: ["reject", "00"],
+  CANCEL: ["cancel", "0"],
 };

@@ -9,6 +9,7 @@ import getMimeType from "./getMimeType.mjs";
 import extractReferralId from "./extractReferralId.mjs";
 import normalizePhoneNumber from "./normalizePhoneNumber.mjs";
 import validateReplyText from "./validateReplyText.mjs";
+import createConfirmationMessage from "./createConfirmationMessage.mjs";
 
 const { Client, LocalAuth, MessageMedia } = pkg;
 
@@ -164,15 +165,19 @@ const initializeClient = async (
         console.log(`📩 [${number}] Replied with message: "${body}"`);
 
         if (!isAcceptance && !isCancellation && !isRejection) {
+          const confirmationMessage = createConfirmationMessage();
+
           await message.reply(
-            `⚠️ Please select a patient card and reply with:\n✅ *accept* or *1*\n❌ *reject* or *00*\n↩️ *cancel* or *0*`
+            `⚠️ Please select patient card and reply with:\n${confirmationMessage}`
           );
           return;
         }
 
         if (!message.hasQuotedMsg) {
+          const confirmationMessage = createConfirmationMessage();
+
           await message.reply(
-            `⚠️ Please *reply to a patient card message* (with Referral ID) to proceed.`
+            `⚠️ Please select a patient card and reply with:\n${confirmationMessage}.`
           );
           return;
         }

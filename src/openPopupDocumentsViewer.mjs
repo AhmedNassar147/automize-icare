@@ -6,7 +6,7 @@
 const openPopupDocumentsViewer = async (browser, page) => {
   console.log("🔎 Trying to find 'View / Link documents' and click it...");
 
-  const [popupPage, canUploadAcceptanceLetter] = await Promise.all([
+  const [popupPage, canUploadLetter] = await Promise.all([
     new Promise((resolve) => {
       browser.once("targetcreated", async (target) => {
         const page = await target.page();
@@ -27,13 +27,13 @@ const openPopupDocumentsViewer = async (browser, page) => {
         const content = link.textContent || "";
 
         const canViewOnly = content.includes("View documents");
-        const canUploadAcceptanceLetter = content.includes("Link documents");
+        const canUploadLetter = content.includes("Link documents");
 
-        if (canViewOnly || canUploadAcceptanceLetter) {
+        if (canViewOnly || canUploadLetter) {
           link.click();
         }
 
-        return canUploadAcceptanceLetter;
+        return canUploadLetter;
       }
 
       return false; // Explicit fallback if no link is found
@@ -42,7 +42,7 @@ const openPopupDocumentsViewer = async (browser, page) => {
 
   return {
     popupPage,
-    canUploadAcceptanceLetter,
+    canUploadLetter,
   };
 };
 

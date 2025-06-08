@@ -1,17 +1,13 @@
-/**
- * ينتظر عدد دقائق من تاريخ إدخال (بصيغة مرنة)، وينفذ asyncAction قبل النهاية بـ 4 ملي ثانية
- * يدعم الإلغاء عبر timer.cancel()
- * @param {string} rawDate - التاريخ بصيغة مثل "2026-06-01 23.47.03.3"
- * @param {() => Promise<any>} asyncAction - دالة async تنفذ قرب الوقت المستهدف
- * @param {number} minutes - عدد الدقائق التي يجب انتظارها
- * @returns {{ cancel: () => void }} - كائن يسمح بإلغاء المؤقت
+/*
+ *
+ * helper: `waitMinutesThenRun`.
+ *
  */
-import convertDateToISO from "./convertDateToISO.mjs";
 import { EFFECTIVE_REVIEW_DURATION_MS } from "./constants.mjs";
 
-const waitMinutesThenRun = (rawDate, asyncAction) => {
-  const iso = convertDateToISO(rawDate);
-  const start = new Date(iso);
+const waitMinutesThenRun = (isoDate, asyncAction) => {
+  // isoDate is already in ISO format, just parse it directly
+  const start = new Date(isoDate);
   const target = new Date(start.getTime() + EFFECTIVE_REVIEW_DURATION_MS);
 
   let timeoutId;

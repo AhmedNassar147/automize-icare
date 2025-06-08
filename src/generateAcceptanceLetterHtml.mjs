@@ -33,6 +33,7 @@ const generateAcceptanceLetterHtml = ({
   requiredSpecialty,
   providerSourceName,
   nationality,
+  isRejection,
 }) => {
   const [date] = (requestedDate || "").split(" ");
   const [year, month, day] = date.split("-");
@@ -43,8 +44,9 @@ const generateAcceptanceLetterHtml = ({
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>نموذج الإحالة</title>
+  <title>${isRejection ? "نموذج رفض الإحالة" : "نموذج الإحالة"}</title>
   <style>
+    /* same styles as before */
     body {
       margin: 0;
       padding: 15px;
@@ -106,13 +108,11 @@ const generateAcceptanceLetterHtml = ({
     }
 
     .notes-section {
-      margin-top: 20px;
-      border-top: 3px solid #c8b789;
+      margin-top: 10px;
       padding-top: 10px;
     }
 
     .notes-header {
-      background: #b7dde9;
       text-align: center;
       padding: 10px;
       font-weight: bold;
@@ -187,6 +187,17 @@ const generateAcceptanceLetterHtml = ({
         <td><strong>رقم التواصل:</strong> -</td>
       </tr>
 
+      ${
+        isRejection
+          ? `
+      <tr class="section-title"><td colspan="4">سبب الرفض</td></tr>
+      <tr>
+        <td colspan="4" style="text-align:center; font-weight:bold;">
+          لا يوجد سرير متاح
+        </td>
+      </tr>
+      `
+          : `
       <tr class="section-title"><td colspan="4">بيانات القبول</td></tr>
       <tr>
         <td><strong>رقم الملف الطبي:</strong></td>
@@ -204,14 +215,20 @@ const generateAcceptanceLetterHtml = ({
         <td colspan="2"><strong>التاريخ الميلادي:</strong> ${requestDate}</td>
         <td colspan="2"><strong>التاريخ الهجري:</strong></td>
       </tr>
+      `
+      }
     </table>
 
     <p>سعادة مدير مستشفى / <strong>${providerSourceName}</strong> المحترم</p>
     <p>السلام عليكم ورحمة الله وبركاته،</p>
     <p>إشارة لإحالة رقم <strong>${referralId}</strong> بتاريخ <strong>${requestDate}</strong> بشأن المريض الموضحة بياناته أعلاه،</p>
     <p>
-      نفيد سعادتكم بأنه تم قبول المريض حسب ما هو موضح بمعلومات الحجز أعلاه.<br>
-      يرجى اتخاذ كافة الإجراءات اللازمة لأمانة المريض مع مراعاة النقاط المذكورة أعلاه.
+      ${
+        isRejection
+          ? `نفيد سعادتكم بأنه لم يتم قبول المريض بسبب عدم توفر سرير في الوقت الحالي.`
+          : `نفيد سعادتكم بأنه تم قبول المريض حسب ما هو موضح بمعلومات الحجز أعلاه.`
+      }
+      <br>يرجى اتخاذ كافة الإجراءات اللازمة لأمانة المريض مع مراعاة النقاط المذكورة أعلاه.
     </p>
 
     <div class="footer">
@@ -220,16 +237,22 @@ const generateAcceptanceLetterHtml = ({
     </div>
 
     <div class="notes-section">
-      <div class="notes-header">ملاحظات مهمة</div>
-      <div class="notes-body">
-        <ul>
-          <li>يلتزم المستشفى المحال استقبال الحالة المحولة عند تحقق الهدف الأساسي من العلاج.</li>
-          <li>الرجاء إحضار أصل هوية المريض عند الحضور للمستشفى.</li>
-          <li>الرجاء إحضار أصل التقرير الطبي وصور الفحوصات والأشعة عند الحضور للمستشفى.</li>
-          <li>عند اختلاف التاريخ الهجري مع التاريخ الميلادي يرجى اعتماد التاريخ الميلادي للمرجع.</li>
-          <li>يرجى الالتزام بتاريخ الموعد المحدد ومدة حجز السرير حتى يتم خدمة المرضى بالشكل المطلوب.</li>
-        </ul>
-      </div>
+        ${
+          isRejection
+            ? ""
+            : `
+          <div class="notes-header">ملاحظات مهمة</div>
+          <div class="notes-body">
+            <ul>
+              <li>يلتزم المستشفى المحال استقبال الحالة المحولة عند تحقق الهدف الأساسي من العلاج.</li>
+              <li>الرجاء إحضار أصل هوية المريض عند الحضور للمستشفى.</li>
+              <li>الرجاء إحضار أصل التقرير الطبي وصور الفحوصات والأشعة عند الحضور للمستشفى.</li>
+              <li>عند اختلاف التاريخ الهجري مع التاريخ الميلادي يرجى اعتماد التاريخ الميلادي للمرجع.</li>
+              <li>يرجى الالتزام بتاريخ الموعد المحدد ومدة حجز السرير حتى يتم خدمة المرضى بالشكل المطلوب.</li>
+            </ul>
+          </div>
+      `
+        }
       <div class="notes-footer">
         <div>${requestDate}<br>التاريخ</div>
         <div>AMER</div>

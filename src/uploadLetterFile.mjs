@@ -4,7 +4,6 @@
  *
  */
 import getDropdownKeyBasedValue from "./getDropdownKeyBasedValue.mjs";
-import sleep from "./sleep.mjs";
 
 const uploadLetterFile = async ({
   popupPage,
@@ -25,10 +24,22 @@ const uploadLetterFile = async ({
 
   await inputUploadHandle.uploadFile(letterFile);
 
-  await sleep(40);
+  const [popupNewHtml] = await Promise.all([
+    popupPage.waitForResponse(
+      (res) =>
+        res.url().toLowerCase().includes("common/attach.cfm") &&
+        res.request().method() === "POST" &&
+        res.status() >= 200 &&
+        res.status() < 300
+    ),
+    popupPage.click("#submit"),
+  ]);
 
-  await popupPage.click("#submit");
-  await sleep(20);
+  if (popupNewHtml) {
+    const fileType = isAcceptingPatient ? "Acceptance" : "Rejection";
+
+    console.log(`✅ ${fileType} Letter File Uploaded.`);
+  }
 };
 
 export default uploadLetterFile;
