@@ -3,83 +3,64 @@
  * Helper: `processCollectingPatients`.
  *
  */
-import findPatientsSectionAnchorAndClickIt from "../findPatientsSectionAnchorAndClickIt.mjs";
 import extractWaitingReferalTableData from "../extractWaitingReferalTableData.mjs";
 import openDetailsPageAndDoUserAction from "../openDetailsPageAndDoUserAction.mjs";
 import generateAcceptancePdfLetters from "../generatePdfs.mjs";
-import clickAppLogo from "../clickAppLogo.mjs";
-import { PATIENT_SECTIONS_STATUS, USER_ACTION_TYPES } from "../constants.mjs";
+import { USER_ACTION_TYPES } from "../constants.mjs";
 
-const processCollectingPatients = async ({
-  browser,
-  patientsStore,
-  collectConfimrdPatient,
-  page,
-}) => {
+const processCollectingPatients = async ({ browser, patientsStore, page }) => {
   console.log("✅ start Collecting Patients...");
   try {
-    const { pupultaeFnText } =
-      PATIENT_SECTIONS_STATUS[collectConfimrdPatient ? "CONFIRMED" : "WAITING"];
-
-    await findPatientsSectionAnchorAndClickIt(page, pupultaeFnText);
-
-    await page.waitForFunction(() => {
-      const rows = document.querySelectorAll(
-        "#tblOutNotificationsTable tbody tr"
-      );
-      return rows.length >= 2;
-    });
-
     const patientsData = await extractWaitingReferalTableData(page);
 
     if (!patientsData || !patientsData.length) {
-      console.log(
-        "✅ Could not find Patients in table, Cancelling Collecting Patients..."
-      );
+      console.log("✅ No patients in table, canceling...");
       return;
     }
 
     const filteredPatientsData = patientsData.filter(({ referralId }) => {
-      const { patient: foundPatient } =
+      const { patient: found } =
         patientsStore.findPatientByReferralId(referralId);
-      return !foundPatient && !!referralId;
+      return !found && !!referralId;
     });
 
-    if (!filteredPatientsData || !filteredPatientsData.length) {
-      console.log(
-        "✅ No New Patients Found, Cancelling Collecting Patients..."
-      );
+    const filteredPatientLength = filteredPatientsData.length;
+
+    if (!filteredPatientLength) {
+      console.log("✅ No new patients found.");
       return;
     }
 
     console.time("collecting patient data from details page");
 
-    const patientsLength = filteredPatientsData.length;
-    const lastPatientIndex = patientsLength - 1;
-
     const results = [];
-    let currentIndex = 0;
 
-    while (currentIndex <= lastPatientIndex) {
-      const patient = filteredPatientsData[currentIndex];
+    for (let i = 0; i < filteredPatientLength; i++) {
+      const patient = filteredPatientsData[i];
 
-      const { patientDetails } = await openDetailsPageAndDoUserAction({
-        actionType: USER_ACTION_TYPES.COLLECT,
-        browser,
-        page,
-        patient,
-      });
+      console.log(
+        `🔍 Processing patient ${i + 1} of ${filteredPatientLength}...`
+      );
 
-      results[currentIndex] = patientDetails;
+      try {
+        const { patientDetails } = await openDetailsPageAndDoUserAction({
+          actionType: USER_ACTION_TYPES.COLLECT,
+          browser,
+          page,
+          patient,
+        });
 
-      currentIndex++;
+        if (patientDetails) {
+          results.push(patientDetails);
+        }
+      } catch (err) {
+        console.warn(`❌ Failed to process patient ${i + 1}:`, err.message);
+      }
     }
 
-    patientsStore.addPatients(results);
+    await patientsStore.addPatients(results.filter(Boolean));
     console.timeEnd("collecting patient data from details page");
 
-    // we do this so the generation done in background
-    // and we don't to block the next count search
     (async () => {
       try {
         await Promise.all([
@@ -87,20 +68,11 @@ const processCollectingPatients = async ({
           generateAcceptancePdfLetters(browser, filteredPatientsData),
         ]);
       } catch (error) {
-        console.log("🛑 Error when generating patient Letters:", error);
+        console.error("🛑 Error generating PDFs:", error.message);
       }
     })();
   } catch (err) {
-    console.log("🛑 Error when collecting patients:", err);
-  } finally {
-    try {
-      await clickAppLogo(page);
-    } catch (error) {
-      console.log(
-        "🛑 Error when clicking app logo when collecting patients:",
-        error
-      );
-    }
+    console.error("🛑 Fatal error during collecting patients:", err.message);
   }
 };
 

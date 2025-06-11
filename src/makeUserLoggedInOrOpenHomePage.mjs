@@ -3,63 +3,63 @@
  * Helper: `makeUserLoggedInOrOpenHomePage`.
  *
  */
-const makeUserLoggedInOrOpenHomePage = async (browser) => {
+const ONE_MINUTE_DELAY_MS = 60 * 1000;
+
+const checkIfLoginPage = async (page) =>
+  await page.evaluate(() => {
+    const loginFormElement = document.getElementById("div-login-form");
+
+    return !!loginFormElement;
+  });
+
+const makeUserLoggedInOrOpenHomePage = async (browser, currentPage) => {
   const userName = process.env.CLIENT_NAME;
 
-  const page = await browser.newPage();
+  const page = currentPage ? currentPage : await browser.newPage();
 
-  try {
+  if (!currentPage) {
     await page.goto("https://purchasingprogramsaudi.com/Index.cfm", {
       waitUntil: "networkidle2",
+      timeout: ONE_MINUTE_DELAY_MS,
     });
-
-    const isLoginPage = await page.evaluate(() => {
-      const loginFormElement = document.getElementById("div-login-form");
-
-      return !!loginFormElement;
-    });
-
-    if (isLoginPage) {
-      await page.type("#j_username", userName);
-      await page.type("#j_password", process.env.CLIENT_PASSWORD);
-
-      await Promise.all([
-        page.waitForNavigation({
-          waitUntil: ["load", "networkidle2"],
-          timeout: 60 * 1000, // 1 minute
-        }),
-        page.click("#btnLogin"),
-      ]);
-    }
-
-    let homePageHeaderElement;
-
-    try {
-      // 2. Wait for an element that indicates login success
-      homePageHeaderElement = await page.waitForSelector(
-        "#icare_global_header_menu",
-        {
-          timeout: 2 * 60 * 1000, // 2 minutes
-        }
-      );
-    } catch (error) {}
-
-    if (homePageHeaderElement) {
-      const message = isLoginPage
-        ? `✅ Then User ${userName} is logged in, And we are in the home page`
-        : `✅ Then User ${userName} is already logged in, And we are in the home page`;
-      console.log(message);
-      return [page, true];
-    } else {
-      console.warn(
-        `⚠️ User ${userName} might not be logged in — We Are not in home page.`
-      );
-      return [page, false];
-    }
-  } catch (error) {
-    console.error(`❌ Login failed for user ${userName}:`, error.message);
-    return [page, false];
   }
+
+  const isLoginPage = await checkIfLoginPage(page);
+
+  if (isLoginPage) {
+    await page.type("#j_username", userName);
+    await page.type("#j_password", process.env.CLIENT_PASSWORD);
+
+    await Promise.all([
+      page.waitForNavigation({
+        waitUntil: ["load", "networkidle2"],
+        timeout: ONE_MINUTE_DELAY_MS, // 1 minute
+      }),
+      page.click("#btnLogin"),
+    ]);
+  }
+
+  const homePageHeaderElement = await page.waitForSelector(
+    "#icare_global_header_menu",
+    {
+      timeout: 2 * ONE_MINUTE_DELAY_MS, // 2 minutes
+    }
+  );
+
+  if (homePageHeaderElement) {
+    const message = isLoginPage
+      ? `✅ Making User ${userName} login, And we are in the home page`
+      : `✅ The User ${userName} is already logged in, And we are in the home page`;
+
+    console.log(message);
+    return [page, true];
+  }
+
+  console.warn(
+    `⚠️ User ${userName} might not be logged in — We Are not in home page.`
+  );
+
+  return [page, false];
 };
 
 export default makeUserLoggedInOrOpenHomePage;

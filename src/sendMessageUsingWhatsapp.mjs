@@ -195,6 +195,8 @@ const initializeClient = async (
           return;
         }
 
+        const scheduledAt = Date.now();
+
         const { success, message: validationMessage } = isRejection
           ? { success: true }
           : patientsStore.canStillProcessPatient(referralId);
@@ -206,9 +208,15 @@ const initializeClient = async (
 
         let result = {};
         if (isAcceptance) {
-          result = patientsStore.scheduleAcceptedPatient(referralId);
+          result = await patientsStore.scheduleAcceptedPatient(
+            referralId,
+            scheduledAt
+          );
         } else if (isRejection) {
-          result = patientsStore.scheduleRejectedPatient(referralId);
+          result = await patientsStore.scheduleRejectedPatient(
+            referralId,
+            scheduledAt
+          );
         } else if (isCancellation) {
           result = patientsStore.cancelPatient(referralId);
         }

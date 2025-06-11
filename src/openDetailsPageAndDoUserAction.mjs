@@ -13,16 +13,11 @@ import fillDetailsPageRejectionForm from "./fillDetailsPageRejectionForm.mjs";
 import { USER_ACTION_TYPES } from "./constants.mjs";
 import clickAppLogo from "./clickAppLogo.mjs";
 import sleep from "./sleep.mjs";
+import closePageSafely from "./closePageSafely.mjs";
 import getCaptchaResponsePromiseFromPage from "./getCaptchaResponsePromiseFromPage.mjs";
 import getWhenCaseStarted from "./getWhenCaseStarted.mjs";
 
 const MAX_UPLOAD_RETRIES = 6;
-
-const closePopupPage = async (popupPage) => {
-  if (popupPage && popupPage.isConnected() && !popupPage.isClosed()) {
-    await popupPage.close();
-  }
-};
 
 const openDetailsPageAndDoUserAction = async (options) => {
   const {
@@ -43,7 +38,7 @@ const openDetailsPageAndDoUserAction = async (options) => {
 
   try {
     console.log(
-      `visit details page for patient=${adherentName} referralId=${referralId} ...`
+      `👨‍⚕️ visit details page for patient=${adherentName} referralId=${referralId} ...`
     );
 
     await navigateToPatientDetailsPage(page, actionLinkRef);
@@ -81,7 +76,7 @@ const openDetailsPageAndDoUserAction = async (options) => {
         patientDetails.files = files || [];
       }
 
-      await closePopupPage(popupPage);
+      await closePageSafely(popupPage, true);
 
       console.log(
         `✅ Successfully collected patient=${adherentName} referralId=${referralId}`
@@ -122,7 +117,7 @@ const openDetailsPageAndDoUserAction = async (options) => {
       await fillDetailsPageRejectionForm(page);
     }
 
-    await closePopupPage(popupPage);
+    await closePageSafely(popupPage, true);
 
     // never put await here so we can listen for the captcha response
     const captchaResponsePromise = getCaptchaResponsePromiseFromPage(page);

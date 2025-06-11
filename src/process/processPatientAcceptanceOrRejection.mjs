@@ -9,16 +9,24 @@ import makeUserLoggedInOrOpenHomePage from "../makeUserLoggedInOrOpenHomePage.mj
 import openDetailsPageAndDoUserAction from "../openDetailsPageAndDoUserAction.mjs";
 import fillCaptchaFormAndSubmit from "../fillCaptchaFormAndSubmit.mjs";
 import { generatedPdfsPath, USER_ACTION_TYPES } from "../constants.mjs";
+import sleep from "../sleep.mjs";
+import closePageSafely from "../closePageSafely.mjs";
 
 const { ACCEPT, REJECT } = USER_ACTION_TYPES;
 
-const processPatientAcceptanceOrRejection = async ({
-  browser,
-  patientsStore,
-  patient,
-  actionType,
-  sendWhatsappMessage,
-}) => {
+const NORMAL_TIMEOUT_DURATION = 2 * 60 * 1000; // 2 minutes
+const MAX_RETRIES = 5;
+
+const processPatientAcceptanceOrRejection = async (options) => {
+  const {
+    browser,
+    patientsStore,
+    patient,
+    actionType,
+    sendWhatsappMessage,
+    retryCount = 0,
+  } = options;
+
   const { referralId, adherentName } = patient;
   const isAcceptance = actionType === ACCEPT;
   const actionTypeTitle = isAcceptance ? "Acceptance" : "Rejection";
@@ -27,23 +35,23 @@ const processPatientAcceptanceOrRejection = async ({
     `✅ Starting Patient ${actionTypeTitle}: referralId=${referralId}`
   );
 
-  const [page, isLoggedIn] = await makeUserLoggedInOrOpenHomePage(browser);
-
-  if (!isLoggedIn) {
-    console.error(
-      `🛑 Can't process patient ${actionTypeTitle}, Failed to login to icare app. Exiting...`
-    );
-    await browser.close();
-  }
+  let page, isLoggedIn;
 
   const actionLetterFile = path.resolve(
     generatedPdfsPath,
     `${actionType}-${referralId}.pdf`
   );
+
   const oppositeActionLetterFile = path.resolve(
     generatedPdfsPath,
     `${isAcceptance ? REJECT : ACCEPT}-${referralId}.pdf`
   );
+
+  const baseMessage = `🚨 *\`${actionTypeTitle.toUpperCase()}\`* Case Alert! 🚨
+🆔 Referral: *${referralId}*
+👤 Name: _${adherentName}_
+
+`;
 
   async function cleanupPatientAndFiles() {
     try {
@@ -55,9 +63,41 @@ const processPatientAcceptanceOrRejection = async ({
     } catch (error) {
       console.log(
         `🛑 Error when deleting patient letters and data for referralId=${referralId}:`,
-        error
+        error.message
       );
     }
+  }
+
+  try {
+    [page, isLoggedIn] = await makeUserLoggedInOrOpenHomePage(browser);
+  } catch (error) {
+    console.error(
+      `🛑 Error When process patient ${actionTypeTitle}, ${error.message}`
+    );
+  }
+
+  if (!isLoggedIn) {
+    if (retryCount >= MAX_RETRIES) {
+      await closePageSafely(page);
+
+      const message = `🛑 Can't process patient ${actionTypeTitle}\nThe Site hangs and couldn't re-login for ${MAX_RETRIES} times.`;
+
+      await sendWhatsappMessage(process.env.CLIENT_WHATSAPP_NUMBER, {
+        message: `${baseMessage}❌ Status: *ERROR* \n *Reason*: _${message}_ ⚠️`,
+      });
+
+      return;
+    }
+
+    const message = `🛑 Can't process patient ${actionTypeTitle}, something went wrong when opening the icare app, retrying...`;
+    console.error(message);
+    await closePageSafely(page);
+    await sleep(NORMAL_TIMEOUT_DURATION);
+
+    return processPatientAcceptanceOrRejection({
+      ...options,
+      retryCount: retryCount + 1,
+    });
   }
 
   try {
@@ -75,12 +115,6 @@ const processPatientAcceptanceOrRejection = async ({
       patient,
       letterFile: actionLetterFile,
     });
-
-    const baseMessage = `🚨 *\`${actionTypeTitle.toUpperCase()}\`* Case Alert! 🚨
-🆔 Referral: *${referralId}*
-👤 Name: _${adherentName}_
-
-`;
 
     if (wasTryingToUpload && !isDoneSuccessfully) {
       await sendWhatsappMessage(process.env.CLIENT_WHATSAPP_NUMBER, {
@@ -105,13 +139,12 @@ const processPatientAcceptanceOrRejection = async ({
         : `${baseMessage}❌ Status: *REJECTED* \n *Reason*: _${message}_ ⚠️`,
     });
   } catch (error) {
-    await cleanupPatientAndFiles();
     console.log(
       `🛑 Error when processing patient ${actionTypeTitle} (referralId=${referralId}):`,
       error
     );
   } finally {
-    await page.close();
+    await closePageSafely(page);
   }
 };
 

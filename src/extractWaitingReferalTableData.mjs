@@ -24,30 +24,32 @@ const extractWaitingReferalTableData = async (page) => {
 
     const rows = Array.from(table.querySelectorAll("tbody tr"));
 
-    return rows.map((row) => {
-      const obj = {};
-      const cells = Array.from(row.querySelectorAll("td"));
+    return rows
+      .map((row) => {
+        const obj = {};
+        const cells = Array.from(row.querySelectorAll("td"));
 
-      cells.forEach((cell, idx) => {
-        if (idx < keys.length) {
-          obj[keys[idx]] = (cell.textContent || "").trim();
+        cells.forEach((cell, idx) => {
+          if (idx < keys.length) {
+            obj[keys[idx]] = (cell.textContent || "").trim();
+          }
+        });
+
+        const actionLink = row.querySelector("a.input_btn");
+        if (actionLink) {
+          const onclickAttr = actionLink.getAttribute("onclick") || "";
+          const start = onclickAttr.indexOf("ColdFusion.navigate('");
+          if (start !== -1) {
+            const urlStart = start + "ColdFusion.navigate('".length;
+            const urlEnd = onclickAttr.indexOf("'", urlStart);
+            obj.actionLinkRef =
+              urlEnd !== -1 ? onclickAttr.substring(urlStart, urlEnd) : null;
+          }
         }
-      });
 
-      const actionLink = row.querySelector("a.input_btn");
-      if (actionLink) {
-        const onclickAttr = actionLink.getAttribute("onclick") || "";
-        const start = onclickAttr.indexOf("ColdFusion.navigate('");
-        if (start !== -1) {
-          const urlStart = start + "ColdFusion.navigate('".length;
-          const urlEnd = onclickAttr.indexOf("'", urlStart);
-          obj.actionLinkRef =
-            urlEnd !== -1 ? onclickAttr.substring(urlStart, urlEnd) : null;
-        }
-      }
-
-      return obj;
-    });
+        return obj;
+      })
+      .filter(Boolean);
   });
 };
 

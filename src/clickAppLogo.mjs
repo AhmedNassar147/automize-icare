@@ -10,10 +10,14 @@
 //  </a>
 // </div>
 
-const clickAppLogo = async (page) =>
-  await Promise.all([
-    page.waitForNetworkIdle(),
-    page.click("#icare_global_header_logo a"),
-  ]);
+const clickAppLogo = async (page) => {
+  try {
+    await page.click("#icare_global_header_logo a");
+    await page.waitForNetworkIdle({ timeout: 120_000 });
+  } catch (err) {
+    console.warn("⚠️ Network did not become idle in time:", err.message);
+    // Optional recovery: reload, retry, log, etc.
+  }
+};
 
 export default clickAppLogo;

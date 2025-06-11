@@ -43,24 +43,16 @@ const collectConfimrdPatient = true;
       args: ["--start-maximized"], // Maximize window on launch
     });
 
-    const [page, isLoggedIn] = await makeUserLoggedInOrOpenHomePage(browser);
-
-    if (!isLoggedIn) {
-      await browser.close();
-      console.error("🛑 Failed to login to icare app. Exiting...");
-      return process.exit(1);
-    }
-
     const collectedPatients = await readJsonFile(
       COLLECTD_PATIENTS_FULL_FILE_PATH,
       true
     );
 
     const patientsStore = new PatientStore(collectedPatients || []);
+    await patientsStore.scheduleAllInitialPatients();
 
     (async () =>
       await waitForWaitingCountWithInterval({
-        page,
         collectConfimrdPatient,
         browser,
         patientsStore,
