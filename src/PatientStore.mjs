@@ -127,10 +127,7 @@ class PatientStore extends EventEmitter {
     this.goingPatientsToBeAccepted.delete(referralId);
     this.goingPatientsToBeRejected.delete(referralId);
 
-    await safeWritePatientData(
-      this.getAllPatients(),
-      COLLECTD_PATIENTS_FILE_NAME
-    );
+    await safeWritePatientData(this.getAllPatients());
     return {
       success: true,
       message: `✅ Patient with referralId=${referralId} just removed.`,
@@ -210,10 +207,7 @@ class PatientStore extends EventEmitter {
       this.patientsById.set(referralId, updatedPatient);
       this.invalidateCache();
 
-      await safeWritePatientData(
-        this.getAllPatients(),
-        COLLECTD_PATIENTS_FILE_NAME
-      );
+      await safeWritePatientData(this.getAllPatients());
     }
 
     return {
