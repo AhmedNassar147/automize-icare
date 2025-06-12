@@ -46,7 +46,8 @@ const openDetailsPageAndDoUserAction = async (options) => {
 
     const { popupPage, canUploadLetter } = await openPopupDocumentsViewer(
       browser,
-      page
+      page,
+      isCollectType
     );
 
     if (popupPage) {
@@ -62,10 +63,6 @@ const openDetailsPageAndDoUserAction = async (options) => {
         getWhenCaseStarted(page),
       ]);
 
-      // const files = await collectFilesFromPopupWindow(popupPage); // ✅ Collects files;
-      // const { text } = await getSelectedNationalityFromDropdwon(page);
-      // const startedAt = await getWhenCaseStarted(page);
-
       patientDetails.nationality = (nationalityOptions || {}).text;
       const { startedAt, startedAtMessage, reviewMinutes } = startedAtValues;
       patientDetails.startedAt = startedAt;
@@ -76,7 +73,7 @@ const openDetailsPageAndDoUserAction = async (options) => {
         patientDetails.files = files || [];
       }
 
-      await closePageSafely(popupPage, true);
+      await closePageSafely(popupPage);
 
       console.log(
         `✅ Successfully collected patient=${adherentName} referralId=${referralId}`
@@ -98,7 +95,7 @@ const openDetailsPageAndDoUserAction = async (options) => {
       }
 
       await clickAppLogo(page);
-      await sleep(200);
+      await sleep(250);
 
       // Increase retry count for recursive call
       return await openDetailsPageAndDoUserAction({

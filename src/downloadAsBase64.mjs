@@ -7,7 +7,7 @@ import { URL } from "node:url";
 
 const downloadAsBase64 = async ({ fileUrl, fileName }) => {
   const url = new URL(fileUrl);
-  const extension = url.searchParams.get("Ext").toLowerCase();
+  let extension = (url.searchParams.get("Ext") || "").toLowerCase();
 
   try {
     const response = await fetch(fileUrl);
@@ -21,8 +21,24 @@ const downloadAsBase64 = async ({ fileUrl, fileName }) => {
       };
     }
 
+    const contentType = response.headers.get("content-type") || "";
     const arrayBuffer = await response.arrayBuffer();
     const base64 = Buffer.from(arrayBuffer).toString("base64");
+
+    // Guess extension from content type if not provided
+    if (!extension && contentType) {
+      extension = contentType.split("/")[1]?.split(";")[0] || "bin";
+    }
+
+    // Basic safety check
+    if (base64.length < 100 || base64.includes("html")) {
+      return {
+        fileUrl,
+        extension,
+        fileName,
+        message: "Downloaded content appears invalid or not binary.",
+      };
+    }
 
     return {
       fileUrl,
@@ -35,7 +51,7 @@ const downloadAsBase64 = async ({ fileUrl, fileName }) => {
       fileUrl,
       extension,
       fileName,
-      message: error,
+      message: error.toString(),
     };
   }
 };

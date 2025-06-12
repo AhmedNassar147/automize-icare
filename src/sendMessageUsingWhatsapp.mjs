@@ -259,17 +259,29 @@ const sendMessageWithFiles = async (number, messageWithFiles) => {
 
     if (Array.isArray(files)) {
       for (const { extension, fileBase64, fileName } of files) {
-        if (!/^[A-Za-z0-9+/=]+$/.test(fileBase64)) {
-          console.warn(`⚠️ [${number}] Skipping invalid base64 file.`);
-          continue;
+        try {
+          if (
+            !fileBase64 ||
+            typeof fileBase64 !== "string" ||
+            !/^[A-Za-z0-9+/=]+$/.test(fileBase64)
+          ) {
+            console.warn(`⚠️ [${number}] Skipping invalid base64 file.`);
+            continue;
+          }
+
+          const cleanBase64 = fileBase64.replace(/^data:.*?base64,/, "").trim();
+          const mimeType = getMimeType(extension);
+
+          const safeFileName = `${fileName || "document"}.${
+            extension || "bin"
+          }`;
+
+          const media = new MessageMedia(mimeType, cleanBase64, safeFileName);
+          await client.sendMessage(chatId, media);
+          console.log(`📤 [${number}] File sent: ${safeFileName}`);
+        } catch (fileErr) {
+          console.error(`❌ Failed to send file "${fileName}":`, fileErr);
         }
-
-        const mimeType = getMimeType(extension);
-        const safeFileName = `${fileName || "document"}.${extension || "bin"}`;
-        const media = new MessageMedia(mimeType, fileBase64, safeFileName);
-
-        await client.sendMessage(chatId, media);
-        console.log(`📤 [${number}] File sent: ${safeFileName}`);
       }
     }
   } catch (err) {

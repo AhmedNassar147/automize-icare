@@ -38,7 +38,7 @@ const getCaptchaResponsePromiseFromPage = (page) =>
     timeoutId = setTimeout(() => {
       page.off("response", onResponse);
       resolve(null);
-    }, 5000);
+    }, 6000);
   });
 
 export default getCaptchaResponsePromiseFromPage;

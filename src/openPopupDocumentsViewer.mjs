@@ -4,41 +4,37 @@
  *
  */
 const openPopupDocumentsViewer = async (browser, page) => {
-  console.log("🔎 Trying to find 'View / Link documents' and click it...");
+  console.log("🔎 Searching for 'View / Link documents'...");
 
-  const [popupPage, canUploadLetter] = await Promise.all([
-    new Promise((resolve) => {
-      browser.once("targetcreated", async (target) => {
-        const page = await target.page();
+  const canUploadLetter = await page.evaluate(() => {
+    const link = document.querySelector(
+      '#dvTitle a[onclick^="window.open(Webpath"]'
+    );
 
-        if (!page) return; // Safety
+    if (link) {
+      const content = link.textContent || "";
+      const canViewOnly = content.includes("View documents");
+      const canUploadLetter = content.includes("Link documents");
 
-        if (page) {
-          await page.bringToFront();
-          resolve(page);
-        }
-      });
-    }),
-    page.evaluate(() => {
-      const link = document.querySelector(
-        '#dvTitle a[onclick^="window.open(Webpath"]'
-      );
-      if (link) {
-        const content = link.textContent || "";
-
-        const canViewOnly = content.includes("View documents");
-        const canUploadLetter = content.includes("Link documents");
-
-        if (canViewOnly || canUploadLetter) {
-          link.click();
-        }
-
+      if (canViewOnly || canUploadLetter) {
+        link.click();
         return canUploadLetter;
       }
+    }
 
-      return false; // Explicit fallback if no link is found
-    }),
-  ]);
+    return false;
+  });
+
+  const popupTarget = await browser.waitForTarget(
+    (target) =>
+      target.type() === "page" &&
+      target.url() !== "about:blank" && // wait until it starts loading a real URL
+      target.url().includes("common/attach_view.cfm"), // or whatever matches the opened URL
+    { timeout: 9000 }
+  );
+
+  const popupPage = await popupTarget.page();
+  await popupPage.bringToFront();
 
   return {
     popupPage,

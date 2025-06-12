@@ -27,7 +27,9 @@ const saveCaptchaImage = async ({
     const buffer = Buffer.from(captchaBase64, "base64");
 
     // const _captchaText = captchaText ? captchaText : getRandomId();
-    const _captchaText = `${captchaText}_${getRandomId()}`;
+    const _captchaText = captchaText
+      ? `${captchaText}_${getRandomId()}`
+      : getRandomId();
 
     const filePath = path.join(
       isRejected ? receivedRejectedCaptchasPath : receivedResolvedCaptchasPath,
@@ -58,7 +60,8 @@ const fillCaptchaFormAndSubmit = async (options) => {
   const MAX_RETRIES = isAcceptance ? 4 : 8;
 
   if (captchaBase64) {
-    const captchaText = await solveCaptchaWithAI();
+    // const captchaText = await solveCaptchaWithAI();
+    const captchaText = "";
 
     const apiEndpointName = isAcceptance
       ? "captcha_accept.cfm"

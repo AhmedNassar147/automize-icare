@@ -25,7 +25,7 @@ const navigateToPatientDetailsPage = async (page, relativePath) => {
   }
 
   await page.waitForSelector("#dvTitle", {
-    timeout: 4000,
+    timeout: 5000,
   });
 };
 

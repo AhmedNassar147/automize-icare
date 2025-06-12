@@ -8,7 +8,7 @@ import {
   ALLOWED_MINUTES_TO_REVIEW_PATIENTS,
 } from "./constants.mjs";
 
-const MINUTES_TO_WAIT = 0.5;
+const MINUTES_TO_WAIT = 0.25;
 
 // const formatDateToYMDHM = (date) => {
 //   const pad = (n) => String(n).padStart(2, "0");
