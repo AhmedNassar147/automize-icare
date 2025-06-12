@@ -3,13 +3,14 @@
  * Helper: `collectFilesFromPopupWindow`.
  *
  */
-import downloadAsBase64 from "./downloadAsBase64.mjs";
+import downloadBase64FromPage from "./downloadBase64FromPage.mjs";
 
-const collectFilesFromPopupWindow = async (
+const collectFilesFromPopupWindow = async ({
   popupPage,
   referralId,
-  requiredSpecialty
-) => {
+  requiredSpecialty,
+  page,
+}) => {
   const attachments = await popupPage.evaluate(
     ({ referralId, requiredSpecialty }) => {
       return Array.from(document.querySelectorAll("li"))
@@ -22,13 +23,10 @@ const collectFilesFromPopupWindow = async (
           const baseFileName = font.textContent?.trim() || "unnamed";
           const fileUrl = link.href.replace(/&amp;/g, "&");
 
-          console.log("fileUrl", fileUrl);
-          console.log("link.href", link.href);
-
           if (!fileUrl.startsWith("http")) return null;
 
           return {
-            fileName: `ReferralId${referralId}-Specialty=${requiredSpecialty}-${baseFileName}`,
+            fileName: `ReferralId=${referralId}-Specialty=${requiredSpecialty}-${baseFileName}`,
             fileUrl,
           };
         })
@@ -51,7 +49,7 @@ const collectFilesFromPopupWindow = async (
     const chunkResults = await Promise.all(
       chunk.map(async (attachment) => {
         try {
-          return await downloadAsBase64(attachment);
+          return await downloadBase64FromPage(page, attachment);
         } catch (err) {
           console.error(`❌ Failed to download: ${attachment.fileUrl}`, err);
           return null;

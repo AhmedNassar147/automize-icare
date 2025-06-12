@@ -58,11 +58,12 @@ const openDetailsPageAndDoUserAction = async (options) => {
     }
 
     if (isCollectType) {
-      const files = await collectFilesFromPopupWindow(
+      const files = await collectFilesFromPopupWindow({
         popupPage,
         referralId,
-        requiredSpecialty
-      );
+        requiredSpecialty,
+        page,
+      });
       const nationalityOptions = await getSelectedNationalityFromDropdwon(page);
       const startedAtValues = await getWhenCaseStarted(page);
 
