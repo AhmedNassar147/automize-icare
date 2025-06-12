@@ -32,7 +32,9 @@ const getWhenCaseStarted = async (page) => {
     `Waiting for #dvError to appear (timeout: ${MINUTES_TO_WAIT} minute)...`
   );
 
-  await page.waitForSelector("#dvError", { timeout }).catch(() => null);
+  try {
+    await page.waitForSelector("#dvError", { timeout });
+  } catch (error) {}
 
   const minutes = await page.evaluate(() => {
     const el = document.querySelector("#dvError");

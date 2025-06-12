@@ -255,10 +255,13 @@ const sendMessageWithFiles = async (number, messageWithFiles) => {
 
   try {
     await client.sendMessage(chatId, message);
-    console.log(`📤 [${number}] Text message sent: "${message}"`);
+    // console.log(`📤 [${number}] Text message sent: "${message}"`);
 
     if (Array.isArray(files)) {
       for (const { extension, fileBase64, fileName } of files) {
+        console.log("extension", extension);
+        console.log("fileName", fileName);
+        console.log("fileBase64", fileBase64);
         try {
           if (
             !fileBase64 ||

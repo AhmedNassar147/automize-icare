@@ -45,6 +45,10 @@ const processSendCollectedPatientsToWhatsapp =
       },
       i
     ) => {
+      console.log({
+        startedAt,
+        startedAtMessage,
+      });
       const message =
         `🚨 *New Case Alert!* 🚨\n` +
         `⏰ *Arrived at:* \`${getReadableDate(startedAt)}\`\n` +

@@ -57,14 +57,14 @@ const openDetailsPageAndDoUserAction = async (options) => {
     }
 
     if (isCollectType) {
-      const [files, nationalityOptions, startedAtValues] = await Promise.all([
-        collectFilesFromPopupWindow(popupPage),
-        getSelectedNationalityFromDropdwon(page),
-        getWhenCaseStarted(page),
-      ]);
+      const files = await collectFilesFromPopupWindow(popupPage);
+      const nationalityOptions = await getSelectedNationalityFromDropdwon(page);
+      const startedAtValues = await getWhenCaseStarted(page);
 
       patientDetails.nationality = (nationalityOptions || {}).text;
+
       const { startedAt, startedAtMessage, reviewMinutes } = startedAtValues;
+
       patientDetails.startedAt = startedAt;
       patientDetails.startedAtMessage = startedAtMessage;
       patientDetails.reviewMinutes = reviewMinutes;
