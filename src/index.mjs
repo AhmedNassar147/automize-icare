@@ -26,7 +26,7 @@ import {
   htmlCaptchasPath,
 } from "./constants.mjs";
 
-const collectConfimrdPatient = true;
+const collectConfimrdPatient = false;
 
 (async () => {
   try {
