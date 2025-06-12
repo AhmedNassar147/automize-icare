@@ -16,7 +16,7 @@ const createConfirmationMessage = () =>
     .map(([key, values]) => {
       const emoji = EMOJIS[key] || "";
       // Format as: emoji *value1* or *value2*
-      return `${emoji} *${values[0]}* or *${values[1]}*`;
+      return `${emoji} _${values[0]}_ or *${values[1]}*`;
     })
     .join("\n");
 

@@ -59,8 +59,9 @@ const processSendCollectedPatientsToWhatsapp =
         `📍 *Zone:* ${sourceZone}\n` +
         `📅 *Requested At:* ${requestedDate}\n` +
         `─────────────────────────────\n` +
-        `🚨 *‼️ ATTENTION ‼️*  *${startedAtMessage}*\n` +
-        `*Please review And Reply on this message with:*.*\n` +
+        `🚨 *‼️ ATTENTION ‼️*\n` +
+        `*${startedAtMessage}*\n` +
+        `*Please review And Reply on this message with:*\n` +
         `${createConfirmationMessage()}`;
 
       return {

@@ -259,11 +259,6 @@ const sendMessageWithFiles = async (number, messageWithFiles) => {
 
     if (Array.isArray(files)) {
       for (const { extension, fileBase64, fileName } of files) {
-        console.log({
-          extension,
-          fileName,
-          fileBase64,
-        });
         try {
           if (
             !fileBase64 ||

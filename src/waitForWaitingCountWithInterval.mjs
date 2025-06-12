@@ -92,7 +92,9 @@ const waitForWaitingCountWithInterval = async (options) => {
         countFieldSelector
       );
 
-      waitingCount = await countHandle.jsonValue();
+      if (countHandle) {
+        waitingCount = await countHandle.jsonValue();
+      }
     } catch (err) {
       console.warn(`⚠️ Failed to get waiting count: ${err.message}`);
     }
