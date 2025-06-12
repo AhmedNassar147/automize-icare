@@ -7,7 +7,6 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import puppeteer from "puppeteer";
-import makeUserLoggedInOrOpenHomePage from "./makeUserLoggedInOrOpenHomePage.mjs";
 import PatientStore from "./PatientStore.mjs";
 import waitForWaitingCountWithInterval from "./waitForWaitingCountWithInterval.mjs";
 import generateFolderIfNotExisting from "./generateFolderIfNotExisting.mjs";
@@ -24,6 +23,7 @@ import {
   USER_ACTION_TYPES,
   receivedRejectedCaptchasPath,
   receivedResolvedCaptchasPath,
+  htmlCaptchasPath,
 } from "./constants.mjs";
 
 const collectConfimrdPatient = true;
@@ -35,6 +35,7 @@ const collectConfimrdPatient = true;
       generateFolderIfNotExisting(generatedPdfsPath),
       generateFolderIfNotExisting(receivedResolvedCaptchasPath),
       generateFolderIfNotExisting(receivedRejectedCaptchasPath),
+      generateFolderIfNotExisting(htmlCaptchasPath),
     ]);
 
     const browser = await puppeteer.launch({

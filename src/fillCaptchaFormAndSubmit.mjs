@@ -11,6 +11,7 @@ import getCaptchaResponsePromiseFromPage from "./getCaptchaResponsePromiseFromPa
 import {
   receivedResolvedCaptchasPath,
   receivedRejectedCaptchasPath,
+  htmlCaptchasPath,
 } from "./constants.mjs";
 
 const getRandomId = (size = 8) => randomBytes(size).toString("hex");
@@ -25,7 +26,8 @@ const saveCaptchaImage = async ({
   try {
     const buffer = Buffer.from(captchaBase64, "base64");
 
-    const _captchaText = captchaText ? captchaText : getRandomId();
+    // const _captchaText = captchaText ? captchaText : getRandomId();
+    const _captchaText = `${captchaText}_${getRandomId()}`;
 
     const filePath = path.join(
       isRejected ? receivedRejectedCaptchasPath : receivedResolvedCaptchasPath,
@@ -53,7 +55,7 @@ const fillCaptchaFormAndSubmit = async (options) => {
     retryCount = 0,
   } = options;
 
-  const MAX_RETRIES = isAcceptance ? 3 : 6;
+  const MAX_RETRIES = isAcceptance ? 4 : 8;
 
   if (captchaBase64) {
     const captchaText = await solveCaptchaWithAI();
@@ -69,27 +71,71 @@ const fillCaptchaFormAndSubmit = async (options) => {
     });
 
     // Type captcha text
-    await page.type("#captchaText", captchaText);
+    // await page.type("#captchaText", captchaText);
 
     // Prepare to listen for new captcha response without awaiting
     const captchaResponsePromise = getCaptchaResponsePromiseFromPage(page);
 
-    // Submit form and wait for response
-    const [pageNewHtml] = await Promise.all([
+    await new Promise((resolve) => setTimeout(resolve, 60000)); // Wait for 60 seconds
+
+    await page.click("form input[type=submit]#submit");
+
+    // Wait for both responses in parallel, safely
+    const [rejectResult, acceptResult] = await Promise.allSettled([
       page.waitForResponse(
         (res) =>
-          res.url().includes(`common/${apiEndpointName}`) &&
+          res.url().includes(`common/captcha_reject.cfm`) &&
           res.request().method() === "POST" &&
           res.status() >= 200 &&
           res.status() < 300,
-        { timeout: 4000 }
+        { timeout: 40000 }
       ),
-      page.click("form input[type=submit]#submit"),
+      page.waitForResponse(
+        (res) =>
+          res.url().includes(`common/captcha_accept.cfm`) &&
+          res.request().method() === "POST" &&
+          res.status() >= 200 &&
+          res.status() < 300,
+        { timeout: 40000 }
+      ),
     ]);
 
-    const htmlText = await pageNewHtml.text();
+    let rejectHtmlText = "";
 
-    const isRejected = htmlText
+    const saveFilesArray = [];
+
+    // Handle fulfilled reject response
+    if (rejectResult.status === "fulfilled") {
+      rejectHtmlText = await rejectResult.value.text();
+
+      const rejectFilePath = path.join(
+        htmlCaptchasPath,
+        `reject_${getRandomId()}.html`
+      );
+
+      saveFilesArray.push([rejectFilePath, rejectHtmlText]);
+    }
+
+    // Handle fulfilled accept response
+    if (acceptResult.status === "fulfilled") {
+      const acceptHtmlText = await acceptResult.value.text();
+
+      const acceptFilePath = path.join(
+        htmlCaptchasPath,
+        `accept_${getRandomId()}.html`
+      );
+
+      saveFilesArray.push([acceptFilePath, acceptHtmlText]);
+    }
+
+    // Write files concurrently
+    if (saveFilesArray.length) {
+      await Promise.all(
+        saveFilesArray.map(([path, data]) => writeFile(path, data))
+      );
+    }
+
+    const isRejected = rejectHtmlText
       .toLowerCase()
       .includes("you did not enter the right text");
 

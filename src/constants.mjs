@@ -9,6 +9,7 @@ export const waitingPatientsFolderDirectory = `${cwd}/results/waiting-patients`;
 export const generatedPdfsPath = `${cwd}/results/patients-generated-pdfs`;
 export const receivedResolvedCaptchasPath = `${cwd}/results/resolved-captchas`;
 export const receivedRejectedCaptchasPath = `${cwd}/results/rejected-captchas`;
+export const htmlCaptchasPath = `${cwd}/results/html-captchas`;
 export const COLLECTD_PATIENTS_FILE_NAME = "collectedPatients";
 export const COLLECTD_PATIENTS_FULL_FILE_PATH = `${waitingPatientsFolderDirectory}/${COLLECTD_PATIENTS_FILE_NAME}.json`;
 
