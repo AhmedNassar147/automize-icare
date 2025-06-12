@@ -70,7 +70,13 @@ class PatientStore extends EventEmitter {
       const key = this.keyExtractor(patient);
       if (!key) continue;
 
-      const isRejection = patient.userActionName === USER_ACTION_TYPES.REJECT;
+      const { userActionName } = patient;
+
+      if (!userActionName) {
+        continue;
+      }
+
+      const isRejection = userActionName === USER_ACTION_TYPES.REJECT;
       const canProcess = isRejection
         ? true
         : this.calculateCanStillProcessPatient(patient);
