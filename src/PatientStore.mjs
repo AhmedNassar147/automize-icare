@@ -105,10 +105,7 @@ class PatientStore extends EventEmitter {
     if (added.length) {
       this.invalidateCache();
       this.emit("patientsAdded", added);
-      await safeWritePatientData(
-        this.getAllPatients(),
-        COLLECTD_PATIENTS_FILE_NAME
-      );
+      await safeWritePatientData(this.getAllPatients());
     }
   }
 
