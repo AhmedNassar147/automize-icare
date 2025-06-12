@@ -79,7 +79,7 @@ const fillCaptchaFormAndSubmit = async (options) => {
     // Prepare to listen for new captcha response without awaiting
     const captchaResponsePromise = getCaptchaResponsePromiseFromPage(page);
 
-    await new Promise((resolve) => setTimeout(resolve, 60000)); // Wait for 60 seconds
+    await new Promise((resolve) => setTimeout(resolve, 30000)); // Wait for 30 seconds
 
     await page.click("form input[type=submit]#submit");
 
