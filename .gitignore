@@ -8,3 +8,4 @@
 /.env
 /fonts
 /test-captcha
+/config.json
