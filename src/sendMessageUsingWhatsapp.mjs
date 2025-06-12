@@ -189,7 +189,7 @@ const initializeClient = async (
           console.warn(
             `❌ [${number}] Invalid quoted message (no Referral ID):\n${quotedMsg.body}`
           );
-          await message.reply(
+          await quotedMsg.reply(
             `❌ Couldn't extract Referral ID. Please reply to a valid patient message.`
           );
           return;
@@ -202,7 +202,7 @@ const initializeClient = async (
           : patientsStore.canStillProcessPatient(referralId);
 
         if (!success) {
-          await message.reply(validationMessage);
+          await quotedMsg.reply(validationMessage);
           return;
         }
 
@@ -223,7 +223,7 @@ const initializeClient = async (
 
         const { success: processSuccess, message: processMessage } = result;
         const prefix = processSuccess ? "✅" : "❌";
-        await message.reply(
+        await quotedMsg.reply(
           `${prefix} ${processMessage} (Referral ID: ${referralId})`
         );
         console.log(
