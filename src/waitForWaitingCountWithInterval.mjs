@@ -88,7 +88,7 @@ const waitForWaitingCountWithInterval = async (options) => {
           const value = parseInt(el.textContent.trim(), 10);
           return isNaN(value) ? 0 : value;
         },
-        { timeout: NORMAL_TIMEOUT_DURATION },
+        { timeout: NORMAL_TIMEOUT_DURATION * 1.5 },
         countFieldSelector
       );
 
@@ -137,8 +137,8 @@ const waitForWaitingCountWithInterval = async (options) => {
         }
       }
 
-      await sleep(NORMAL_TIMEOUT_DURATION);
       await clickAppLogo(page);
+      // await sleep(NORMAL_TIMEOUT_DURATION);
 
       currentPage = page;
       continue;
