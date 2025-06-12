@@ -34,7 +34,8 @@ const openDetailsPageAndDoUserAction = async (options) => {
   const isCollectType = actionType === USER_ACTION_TYPES.COLLECT;
 
   let patientDetails = patient;
-  const { adherentName, referralId, actionLinkRef } = patient;
+  const { adherentName, actionLinkRef, referralId, requiredSpecialty } =
+    patient;
 
   try {
     console.log(
@@ -57,7 +58,11 @@ const openDetailsPageAndDoUserAction = async (options) => {
     }
 
     if (isCollectType) {
-      const files = await collectFilesFromPopupWindow(popupPage);
+      const files = await collectFilesFromPopupWindow(
+        popupPage,
+        referralId,
+        requiredSpecialty
+      );
       const nationalityOptions = await getSelectedNationalityFromDropdwon(page);
       const startedAtValues = await getWhenCaseStarted(page);
 

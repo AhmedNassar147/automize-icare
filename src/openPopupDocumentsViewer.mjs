@@ -26,11 +26,18 @@ const openPopupDocumentsViewer = async (browser, page) => {
   });
 
   const popupTarget = await browser.waitForTarget(
-    (target) =>
-      target.type() === "page" &&
-      target.url() !== "about:blank" && // wait until it starts loading a real URL
-      target.url().includes("common/attach_view.cfm"), // or whatever matches the opened URL
-    { timeout: 9000 }
+    (target) => {
+      const isPageType = target.type() === "page";
+      const url = target.url();
+
+      const isPopupWindow =
+        url.includes("common/attach.cfm") ||
+        url.includes("common/attach_view.cfm");
+
+      return isPageType && isPopupWindow; // or whatever matches the opened URL
+    },
+
+    { timeout: 70000 }
   );
 
   const popupPage = await popupTarget.page();
