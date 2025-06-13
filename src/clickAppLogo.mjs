@@ -14,7 +14,7 @@ import sleep from "./sleep.mjs";
 const clickAppLogo = async (page) => {
   try {
     await page.click("#icare_global_header_logo a");
-    await sleep(50000);
+    await sleep(3000);
   } catch (err) {
     console.warn("⚠️ couldn't find app logo:", err.message);
     // Optional recovery: reload, retry, log, etc.

@@ -83,7 +83,7 @@ const processPatientAcceptanceOrRejection = async (options) => {
       const message = `🛑 Can't process patient ${actionTypeTitle}\nThe Site hangs and couldn't re-login for ${MAX_RETRIES} times.`;
 
       await sendWhatsappMessage(process.env.CLIENT_WHATSAPP_NUMBER, {
-        message: `${baseMessage}❌ Status: *ERROR* \n *Reason*: _${message}_ ⚠️`,
+        message: `${baseMessage}❌ Status: *ERROR*\n*Reason*: _${message}_ ⚠️`,
       });
 
       return;
@@ -102,12 +102,11 @@ const processPatientAcceptanceOrRejection = async (options) => {
 
   try {
     const {
-      captchaBase64,
-      captchaExtension,
       captchaFileName,
       wasTryingToUpload,
       isDoneSuccessfully,
       uploadError,
+      isUploadedSuccessfully,
     } = await openDetailsPageAndDoUserAction({
       actionType,
       browser,
@@ -118,26 +117,36 @@ const processPatientAcceptanceOrRejection = async (options) => {
 
     if (wasTryingToUpload && !isDoneSuccessfully) {
       await sendWhatsappMessage(process.env.CLIENT_WHATSAPP_NUMBER, {
-        message: `${baseMessage}❌ Status: *ERROR* \n *Reason*: _${uploadError}_ ⚠️`,
+        message: `${baseMessage}❌ Status: *ERROR*\n*Reason*: _${uploadError}_ ⚠️`,
       });
 
-      await cleanupPatientAndFiles();
+      return;
+    }
+
+    if (!isUploadedSuccessfully) {
+      const errorMessage = "Couldn't upload the letter file.";
+      await sendWhatsappMessage(process.env.CLIENT_WHATSAPP_NUMBER, {
+        message: `${baseMessage}❌ Status: *ERROR*\n*Reason*: _${errorMessage}_ ⚠️`,
+      });
+
       return;
     }
 
     const { isAccepted, message } = await fillCaptchaFormAndSubmit({
-      captchaBase64,
       isAcceptance,
       page,
-      captchaExtension,
       captchaFileName,
     });
 
     await sendWhatsappMessage(process.env.CLIENT_WHATSAPP_NUMBER, {
       message: isAccepted
         ? `${baseMessage}_${message}_ \n✅ Status: *ACCEPTED* 🎉`
-        : `${baseMessage}❌ Status: *REJECTED* \n *Reason*: _${message}_ ⚠️`,
+        : `${baseMessage}❌ Status: *REJECTED*\n*Reason*: _${message}_ ⚠️`,
     });
+
+    if (isAccepted) {
+      await cleanupPatientAndFiles();
+    }
   } catch (error) {
     console.log(
       `🛑 Error when processing patient ${actionTypeTitle} (referralId=${referralId}):`,

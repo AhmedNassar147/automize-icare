@@ -23,7 +23,7 @@ import {
   USER_ACTION_TYPES,
   receivedRejectedCaptchasPath,
   receivedResolvedCaptchasPath,
-  htmlCaptchasPath,
+  htmlFilesPath,
 } from "./constants.mjs";
 
 const collectConfimrdPatient = false;
@@ -35,7 +35,7 @@ const collectConfimrdPatient = false;
       generateFolderIfNotExisting(generatedPdfsPath),
       generateFolderIfNotExisting(receivedResolvedCaptchasPath),
       generateFolderIfNotExisting(receivedRejectedCaptchasPath),
-      generateFolderIfNotExisting(htmlCaptchasPath),
+      generateFolderIfNotExisting(htmlFilesPath),
     ]);
 
     const browser = await puppeteer.launch({

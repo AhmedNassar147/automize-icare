@@ -3,6 +3,14 @@
  * Helper: `downloadBase64FromPage`.
  *
  */
+
+const supportedTypes = {
+  "application/pdf": "pdf",
+  "image/jpeg": "jpeg",
+  "image/jpg": "jpg",
+  "image/png": "png",
+};
+
 const downloadBase64FromPage = async (page, { fileUrl, fileName }) => {
   const result = await page.evaluate(async (fileUrl) => {
     try {
@@ -50,13 +58,6 @@ const downloadBase64FromPage = async (page, { fileUrl, fileName }) => {
       message: "Downloaded content appears invalid it's html.",
     };
   }
-
-  const supportedTypes = {
-    "application/pdf": "pdf",
-    "image/jpeg": "jpeg",
-    "image/jpg": "jpg",
-    "image/png": "png",
-  };
 
   const extension = supportedTypes[result.contentType] || "";
 

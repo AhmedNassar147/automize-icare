@@ -4,7 +4,6 @@
  *
  */
 import navigateToPatientDetailsPage from "./navigateToPatientDetailsPage.mjs";
-import checkStopModalAndCloseIt from "./checkStopModalAndCloseIt.mjs";
 import collectFilesFromPopupWindow from "./collectFilesFromPopupWindow.mjs";
 import getSelectedNationalityFromDropdwon from "./getSelectedNationalityFromDropdwon.mjs";
 import openPopupDocumentsViewer from "./openPopupDocumentsViewer.mjs";
@@ -12,9 +11,7 @@ import uploadLetterFile from "./uploadLetterFile.mjs";
 import fillDetailsPageRejectionForm from "./fillDetailsPageRejectionForm.mjs";
 import { USER_ACTION_TYPES } from "./constants.mjs";
 import clickAppLogo from "./clickAppLogo.mjs";
-import sleep from "./sleep.mjs";
 import closePageSafely from "./closePageSafely.mjs";
-import getCaptchaResponsePromiseFromPage from "./getCaptchaResponsePromiseFromPage.mjs";
 import getWhenCaseStarted from "./getWhenCaseStarted.mjs";
 
 const MAX_UPLOAD_RETRIES = 6;
@@ -101,7 +98,6 @@ const openDetailsPageAndDoUserAction = async (options) => {
       }
 
       await clickAppLogo(page);
-      await sleep(250);
 
       // Increase retry count for recursive call
       return await openDetailsPageAndDoUserAction({
@@ -110,20 +106,26 @@ const openDetailsPageAndDoUserAction = async (options) => {
       });
     }
 
-    await uploadLetterFile({
+    const isUploadedSuccessfully = await uploadLetterFile({
       popupPage,
       letterFile,
       isAcceptingPatient: isAcceptType,
+      referralId,
     });
+
+    if (!isUploadedSuccessfully) {
+      return {
+        patientDetails,
+        isDoneSuccessfully: false,
+        isUploadedSuccessfully,
+      };
+    }
 
     if (isRejectType) {
       await fillDetailsPageRejectionForm(page);
     }
 
     await closePageSafely(popupPage, true);
-
-    // never put await here so we can listen for the captcha response
-    const captchaResponsePromise = getCaptchaResponsePromiseFromPage(page);
 
     await Promise.all([
       page.waitForNavigation({ waitUntil: "networkidle2" }),
@@ -136,22 +138,10 @@ const openDetailsPageAndDoUserAction = async (options) => {
 
     const captchaFileName = `${adherentName}_${referralId}`;
 
-    const result = await captchaResponsePromise;
-    const hasCaptchaResponse = !!result;
-
-    const message = hasCaptchaResponse
-      ? "✅ Captcha Image Found, "
-      : "❌ No captcha response received in time";
-
-    console.log(
-      `${message} for patient=${adherentName} referralId=${referralId}`
-    );
-
     return {
       patientDetails,
-      isDoneSuccessfully: hasCaptchaResponse,
+      isDoneSuccessfully: true,
       captchaFileName,
-      ...(result || {}),
     };
   } catch (error) {
     console.error(
